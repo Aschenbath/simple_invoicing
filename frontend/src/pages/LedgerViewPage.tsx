@@ -996,6 +996,16 @@ export default function LedgerViewPage() {
                       >
                         View
                       </button>
+                    ) : entry.entry_type === 'credit_note' ? (
+                      <button
+                        type="button"
+                        className="button button--ghost button--small"
+                        onClick={() => navigate(`/credit-notes?cn_id=${entry.entry_id}`)}
+                        title="View credit note"
+                        aria-label="View credit note"
+                      >
+                        View
+                      </button>
                     ) : entry.voucher_type === 'Opening Balance' ? (
                       <button
                         type="button"
