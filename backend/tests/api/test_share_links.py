@@ -16,6 +16,7 @@ from src.models.buyer import Buyer as Ledger
 from src.models.company import CompanyProfile
 from src.models.invoice import Invoice, InvoiceItem
 from src.models.company_account import CompanyAccount
+from src.models.credit_note import CreditNote, CreditNoteInvoiceRef, CreditNoteItem
 from src.models.payment import Payment, PaymentInvoiceAllocation
 from src.models.product import Product
 from src.models.share_link import ShareLink
@@ -1119,3 +1120,125 @@ def test_a_receipt_never_offers_payment(client, db_session):
     assert "data:image/png;base64," not in client.get(f"/s/{token}").text
 
 
+
+
+# ---------------------------------------------------------------------------
+# Credit notes
+# ---------------------------------------------------------------------------
+
+def _credit_note(db, company: CompanyProfile, ledger: Ledger, invoice: Invoice, *, direction: str = "outward") -> CreditNote:
+    user = _user(db)
+    item = invoice.items[0]
+    credit_note = CreditNote(
+        credit_note_number="CN/26/0007" if direction == "outward" else "DN-0007",
+        company_id=company.id,
+        ledger_id=ledger.id,
+        created_by=user.id,
+        credit_note_type="return",
+        direction=direction,
+        supplier_credit_note_number="SUP-1" if direction == "inward" else None,
+        reason="Damaged in transit",
+        status="active",
+        taxable_amount=Decimal("100.00"),
+        cgst_amount=Decimal("9.00"),
+        sgst_amount=Decimal("9.00"),
+        igst_amount=Decimal("0"),
+        total_amount=Decimal("118.00"),
+        created_at=datetime(2026, 6, 5, 9, 0, 0),
+    )
+    credit_note.invoice_refs = [CreditNoteInvoiceRef(invoice_id=invoice.id)]
+    credit_note.items = [CreditNoteItem(
+        company_id=company.id,
+        invoice_id=invoice.id,
+        invoice_item_id=item.id,
+        product_id=item.product_id,
+        quantity=1,
+        unit_price=Decimal("100.00"),
+        gst_rate=Decimal("18.00"),
+        taxable_amount=Decimal("100.00"),
+        tax_amount=Decimal("18.00"),
+        line_total=Decimal("118.00"),
+    )]
+    db.add(credit_note)
+    db.commit()
+    db.refresh(credit_note)
+    return credit_note
+
+
+def test_authenticated_credit_note_pdf_works(client, db_session):
+    company = _company(db_session, "Alpha Ltd")
+    ledger = _ledger(db_session, company)
+    credit_note = _credit_note(db_session, company, ledger, _invoice(db_session, company, ledger))
+
+    response = client.get(f"/api/credit-notes/{credit_note.id}/pdf", headers=_headers(company))
+    assert response.status_code == 200, response.text
+    assert response.content.startswith(b"%PDF")
+    assert response.headers["content-disposition"] == 'inline; filename="credit_note_CN_26_0007.pdf"'
+
+
+def test_credit_note_share_link_renders_end_to_end(client, db_session):
+    company = _company(db_session, "Alpha Ltd")
+    ledger = _ledger(db_session, company)
+    credit_note = _credit_note(db_session, company, ledger, _invoice(db_session, company, ledger))
+
+    created = _create_link(client, company, "credit_note", credit_note.id)
+    assert created.status_code == 200, created.text
+    token = created.json()["token"]
+
+    page = client.get(f"/s/{token}")
+    assert page.status_code == 200
+    assert "Credit Note CN/26/0007" in page.text
+    assert "Acme Traders" in page.text
+
+    document = client.get(f"/s/{token}/document.html")
+    assert document.status_code == 200
+    assert "INV-0042" in document.text
+    assert "Damaged in transit" in document.text
+
+    pdf = client.get(f"/s/{token}/pdf")
+    assert pdf.status_code == 200
+    assert pdf.content.startswith(b"%PDF")
+
+
+def test_an_inward_credit_note_cannot_be_printed_or_shared(client, db_session):
+    # It is the supplier's document; printing it under our letterhead would forge theirs.
+    company = _company(db_session, "Alpha Ltd")
+    ledger = _ledger(db_session, company)
+    credit_note = _credit_note(
+        db_session, company, ledger, _invoice(db_session, company, ledger), direction="inward"
+    )
+
+    assert client.get(f"/api/credit-notes/{credit_note.id}/pdf", headers=_headers(company)).status_code == 404
+    assert _create_link(client, company, "credit_note", credit_note.id).status_code == 400
+
+
+def test_cancelled_credit_note_shows_the_unavailable_page(client, db_session):
+    company = _company(db_session, "Alpha Ltd")
+    ledger = _ledger(db_session, company)
+    credit_note = _credit_note(db_session, company, ledger, _invoice(db_session, company, ledger))
+    token = _create_link(client, company, "credit_note", credit_note.id).json()["token"]
+
+    credit_note.status = "cancelled"
+    db_session.commit()
+
+    page = client.get(f"/s/{token}")
+    assert page.status_code == 404
+    assert "no longer available" in page.text
+    assert "CN/26/0007" not in page.text
+    assert client.get(f"/s/{token}/pdf").status_code == 404
+    # A cancelled note cannot be freshly shared either.
+    assert _create_link(client, company, "credit_note", credit_note.id).status_code == 404
+    # …but the owner can still pull up their own copy, marked as cancelled.
+    assert client.get(f"/api/credit-notes/{credit_note.id}/pdf", headers=_headers(company)).status_code == 200
+
+
+def test_cannot_mint_a_link_for_another_companys_credit_note(client, db_session):
+    alpha = _company(db_session, "Alpha Ltd")
+    beta = _company(db_session, "Beta Ltd")
+    beta_ledger = _ledger(db_session, beta, name="Beta Buyer")
+    credit_note = _credit_note(
+        db_session, beta, beta_ledger, _invoice(db_session, beta, beta_ledger, number="BETA-0001")
+    )
+
+    assert _create_link(client, alpha, "credit_note", credit_note.id).status_code == 404
+    assert client.get(f"/api/credit-notes/{credit_note.id}/pdf", headers=_headers(alpha)).status_code == 404

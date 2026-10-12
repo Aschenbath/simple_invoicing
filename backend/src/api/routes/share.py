@@ -24,6 +24,7 @@ from src.models.share_link import ShareLink
 from src.models.user import User
 from src.schemas.share import ShareLinkCreate, ShareLinkOut
 from src.services.share_documents import (
+    RESOURCE_CREDIT_NOTE,
     RESOURCE_INVOICE,
     RESOURCE_PAYMENT,
     RESOURCE_STATEMENT,
@@ -34,9 +35,11 @@ from src.services.share_documents import (
     build_share_url,
     ensure_live_share_link,
     find_live_share_link,
+    get_credit_note,
     get_invoice,
     get_ledger,
     get_payment,
+    is_outward_credit_note,
 )
 
 __all__ = ["router", "build_share_url"]
@@ -87,6 +90,14 @@ def _validate_resource(db: Session, company_id: int, payload: ShareLinkCreate) -
     if payload.resource_type == RESOURCE_PAYMENT:
         if get_payment(db, company_id, payload.resource_id) is None:
             raise HTTPException(status_code=404, detail="Payment not found")
+        return
+
+    if payload.resource_type == RESOURCE_CREDIT_NOTE:
+        credit_note = get_credit_note(db, company_id, payload.resource_id)
+        if credit_note is None or credit_note.status != "active":
+            raise HTTPException(status_code=404, detail="Credit note not found")
+        if not is_outward_credit_note(credit_note):
+            raise HTTPException(status_code=400, detail="Only a credit note you issued can be shared")
         return
 
     raise HTTPException(status_code=400, detail="Unsupported resource_type")

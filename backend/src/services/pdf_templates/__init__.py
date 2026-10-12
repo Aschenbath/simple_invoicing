@@ -16,6 +16,7 @@ from .builders import (
     _pdf_unit_price,
     _pdf_unit_price_including_tax,
 )
+from .credit_note_template import _build_credit_note_html
 from .invoice_template import (
     _build_invoice_html,
     _build_multi_copy_invoice_html,
@@ -26,6 +27,7 @@ from .purchase_template import _build_purchase_invoice_html
 
 __all__ = [
     "_amount_in_words_indian",
+    "_build_credit_note_html",
     "_build_invoice_html",
     "_build_multi_copy_invoice_html",
     "_build_day_book_html",

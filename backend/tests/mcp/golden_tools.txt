@@ -29,6 +29,7 @@ company_update_profile	PUT	/api/company/
 company_update_term	PUT	/api/company/terms/{term_id}
 credit_notes_cancel	POST	/api/credit-notes/{cn_id}/cancel
 credit_notes_create	POST	/api/credit-notes/
+credit_notes_download_pdf	GET	/api/credit-notes/{cn_id}/pdf
 credit_notes_get	GET	/api/credit-notes/{cn_id}
 credit_notes_list	GET	/api/credit-notes/
 dashboard_metrics	GET	/api/dashboard/metrics

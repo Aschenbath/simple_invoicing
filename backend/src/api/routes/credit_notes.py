@@ -2,6 +2,7 @@ import math
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
@@ -13,6 +14,7 @@ from src.models.credit_note import CreditNote, CreditNoteInvoiceRef
 from src.models.user import User
 from src.schemas.credit_note import CreditNoteCreate, CreditNoteOut, PaginatedCreditNoteOut
 from src.services.credit_note import cancel_credit_note, create_credit_note
+from src.services.share_documents import render_credit_note_pdf
 
 router = APIRouter()
 
@@ -150,6 +152,36 @@ def get_credit_note(
     if not cn:
         raise HTTPException(status_code=404, detail="Credit note not found")
     return _to_out(cn)
+
+
+@router.get("/{cn_id}/pdf")
+def download_credit_note_pdf(
+    cn_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+    active_company: CompanyProfile = Depends(get_active_company),
+):
+    # Rendered in src/services/share_documents, like invoices and receipts, so the
+    # owner's copy and the one a customer opens from a share link are the same
+    # document. 404s for an inward note: that one is the supplier's to issue.
+    company_id = active_company.id
+    cn = (
+        db.query(CreditNote)
+        .filter(CreditNote.id == cn_id)
+        .filter(or_(CreditNote.company_id == company_id, CreditNote.company_id.is_(None)))
+        .first()
+    )
+    if not cn:
+        raise HTTPException(status_code=404, detail="Credit note not found")
+
+    buf = render_credit_note_pdf(db, company_id, cn_id)
+
+    filename = f"credit_note_{cn.credit_note_number.replace('/', '_')}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 @router.post("/{cn_id}/cancel", response_model=CreditNoteOut)

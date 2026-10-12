@@ -11,7 +11,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-ShareResourceType = Literal["invoice", "ledger_statement", "payment"]
+ShareResourceType = Literal["invoice", "ledger_statement", "payment", "credit_note"]
 
 
 class ShareLinkCreate(BaseModel):

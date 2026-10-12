@@ -985,7 +985,7 @@ export type DashboardMetrics = {
 };
 
 /** What a public share link can point at. */
-export type ShareResourceType = 'invoice' | 'ledger_statement' | 'payment';
+export type ShareResourceType = 'invoice' | 'ledger_statement' | 'payment' | 'credit_note';
 
 /**
  * A public, tokenised URL for one document, handed to a customer over WhatsApp.

@@ -36,12 +36,13 @@ from src.core.config import settings
 from src.models.buyer import Buyer as Ledger
 from src.models.company import CompanyProfile
 from src.models.company_account import CompanyAccount
+from src.models.credit_note import CreditNote, CreditNoteItem
 from src.models.invoice import Invoice
 from src.models.payment import Payment, PaymentInvoiceAllocation
 from src.models.product import Product
 from src.models.share_link import ShareLink
 from src.services.invoice_payments import build_invoice_payment_summaries
-from src.services.pdf_templates import _build_multi_copy_invoice_html, _build_statement_html, _fmt_currency
+from src.services.pdf_templates import _build_credit_note_html, _build_multi_copy_invoice_html, _build_statement_html, _fmt_currency
 from src.services.serial_service import SerialManager
 from src.services.upi import (
     UpiPaymentRequest,
@@ -53,7 +54,8 @@ from src.services.upi import (
 RESOURCE_INVOICE = "invoice"
 RESOURCE_STATEMENT = "ledger_statement"
 RESOURCE_PAYMENT = "payment"
-SHARE_RESOURCE_TYPES = (RESOURCE_INVOICE, RESOURCE_STATEMENT, RESOURCE_PAYMENT)
+RESOURCE_CREDIT_NOTE = "credit_note"
+SHARE_RESOURCE_TYPES = (RESOURCE_INVOICE, RESOURCE_STATEMENT, RESOURCE_PAYMENT, RESOURCE_CREDIT_NOTE)
 
 
 # ---------------------------------------------------------------------------
@@ -230,6 +232,30 @@ def get_payment(db: Session, company_id: int, payment_id: int, *, active_only: b
         .filter(*filters)
         .first()
     )
+
+
+def get_credit_note(db: Session, company_id: int, credit_note_id: int) -> CreditNote | None:
+    return (
+        db.query(CreditNote)
+        .options(
+            joinedload(CreditNote.ledger),
+            joinedload(CreditNote.invoice_refs),
+            joinedload(CreditNote.items).joinedload(CreditNoteItem.invoice_item),
+        )
+        .filter(CreditNote.id == credit_note_id)
+        .filter(or_(CreditNote.company_id == company_id, CreditNote.company_id.is_(None)))
+        .first()
+    )
+
+
+def is_outward_credit_note(credit_note: CreditNote) -> bool:
+    """Whether this is a note we issued, and so one we can print and send.
+
+    An inward note is the supplier's own document, recorded here only to reverse
+    the input tax; printing it under our letterhead would forge theirs. Rows from
+    before the direction column existed are all outward.
+    """
+    return (credit_note.direction or "outward") == "outward"
 
 
 # ---------------------------------------------------------------------------
@@ -501,6 +527,33 @@ def render_receipt_pdf(db: Session, company_id: int, payment_id: int) -> BytesIO
     return _to_pdf(build_receipt_html(db, company_id, payment_id))
 
 
+def build_credit_note_html(db: Session, company_id: int, credit_note_id: int) -> str:
+    credit_note = get_credit_note(db, company_id, credit_note_id)
+    if credit_note is None or not is_outward_credit_note(credit_note):
+        raise HTTPException(status_code=404, detail="Credit note not found")
+
+    invoice_ids = [ref.invoice_id for ref in credit_note.invoice_refs]
+    invoices = (
+        db.query(Invoice).filter(Invoice.id.in_(invoice_ids)).order_by(Invoice.invoice_date, Invoice.id).all()
+        if invoice_ids
+        else []
+    )
+    product_ids = {item.product_id for item in credit_note.items if item.product_id}
+    products = db.query(Product).filter(Product.id.in_(product_ids)).all() if product_ids else []
+
+    return _build_credit_note_html(
+        credit_note,
+        invoices,
+        products,
+        _company(db, company_id),
+        credit_note.ledger,
+    )
+
+
+def render_credit_note_pdf(db: Session, company_id: int, credit_note_id: int) -> BytesIO:
+    return _to_pdf(build_credit_note_html(db, company_id, credit_note_id))
+
+
 # ---------------------------------------------------------------------------
 # The public summary
 # ---------------------------------------------------------------------------
@@ -670,6 +723,23 @@ def build_share_summary(db: Session, link: ShareLink) -> ShareSummary | None:
             logo_mime_type=logo_mime_type,
         )
 
+    if link.resource_type == RESOURCE_CREDIT_NOTE:
+        credit_note = get_credit_note(db, link.company_id, link.resource_id)
+        if credit_note is None or not is_outward_credit_note(credit_note):
+            return None
+        # Credit, not a bill: never an offer to pay.
+        return ShareSummary(
+            title=f"Credit Note {credit_note.credit_note_number}",
+            party_name=credit_note.ledger.name if credit_note.ledger else "",
+            company_name=company_name,
+            amount_label=_fmt_currency(float(credit_note.total_amount or 0), currency),
+            date_label=_fmt_date(credit_note.created_at),
+            pdf_filename=f"credit_note_{_safe_ledger_slug(credit_note.credit_note_number)}.pdf",
+            available=credit_note.status == "active",
+            logo_data=logo_data,
+            logo_mime_type=logo_mime_type,
+        )
+
     return None
 
 
@@ -707,6 +777,8 @@ def render_share_pdf(db: Session, link: ShareLink, *, request: Request | None = 
         )
     if link.resource_type == RESOURCE_PAYMENT:
         return render_receipt_pdf(db, link.company_id, link.resource_id)
+    if link.resource_type == RESOURCE_CREDIT_NOTE:
+        return render_credit_note_pdf(db, link.company_id, link.resource_id)
     raise HTTPException(status_code=404, detail="Not found")
 
 
@@ -726,4 +798,6 @@ def render_share_document_html(db: Session, link: ShareLink, *, request: Request
         )
     if link.resource_type == RESOURCE_PAYMENT:
         return build_receipt_html(db, link.company_id, link.resource_id)
+    if link.resource_type == RESOURCE_CREDIT_NOTE:
+        return build_credit_note_html(db, link.company_id, link.resource_id)
     raise HTTPException(status_code=404, detail="Not found")

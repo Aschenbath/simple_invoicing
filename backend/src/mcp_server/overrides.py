@@ -86,6 +86,7 @@ NAME_OVERRIDES: dict[tuple[str, str], str] = {
     # payments
     ("GET", "/api/payments/{payment_id}/pdf"): "payments_download_receipt_pdf",
     # credit notes
+    ("GET", "/api/credit-notes/{cn_id}/pdf"): "credit_notes_download_pdf",
     ("POST", "/api/credit-notes/{cn_id}/cancel"): "credit_notes_cancel",
     # shortcuts — DELETE /api/shortcuts/ and DELETE /api/shortcuts/{action_key}
     # both generate `shortcuts_delete`; this is the one real collision.

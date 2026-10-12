@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown, FileText, FilePlus, Mail, Pencil, ReceiptText, 
 import api, { getApiErrorMessage } from '../api/client';
 import type { CompanyAccount, CompanyProfile, Invoice, Ledger, LedgerAddress, LedgerStatement, OutstandingInvoice, Payment, PaymentCreate, PaymentInvoiceAllocation, PaymentUpdate, Product } from '../types/api';
 import InvoicePreview from '../components/InvoicePreview';
+import CreditNotePreview from '../components/CreditNotePreview';
 import PaymentReceiptPreview from '../components/PaymentReceiptPreview';
 import StatementPreview from '../components/StatementPreview';
 import ShareModal from '../components/ShareModal';
@@ -112,6 +113,7 @@ export default function LedgerViewPage() {
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [previewReceiptId, setPreviewReceiptId] = useState<number | null>(null);
   const [previewReceiptNumber, setPreviewReceiptNumber] = useState<string | null>(null);
+  const [previewCreditNote, setPreviewCreditNote] = useState<{ id: number; number: string | null } | null>(null);
   const [loadingLedger, setLoadingLedger] = useState(true);
   const [loadingStatement, setLoadingStatement] = useState(false);
   const [error, setError] = useState('');
@@ -1000,7 +1002,13 @@ export default function LedgerViewPage() {
                       <button
                         type="button"
                         className="button button--ghost button--small"
-                        onClick={() => navigate(`/credit-notes?cn_id=${entry.entry_id}`)}
+                        onClick={() => (
+                          // A Debit Note row is a supplier's note we only recorded; it has no
+                          // document of ours, so it opens on the credit notes page instead.
+                          entry.voucher_type === 'Debit Note'
+                            ? navigate(`/credit-notes?cn_id=${entry.entry_id}`)
+                            : setPreviewCreditNote({ id: entry.entry_id, number: entry.reference_number ?? null })
+                        )}
                         title="View credit note"
                         aria-label="View credit note"
                       >
@@ -1209,6 +1217,17 @@ export default function LedgerViewPage() {
         <InvoicePreview
           invoice={previewInvoice}
           onClose={() => setPreviewInvoice(null)}
+          onError={(msg) => setError(msg)}
+        />
+      ) : null}
+
+      {previewCreditNote ? (
+        <CreditNotePreview
+          creditNoteId={previewCreditNote.id}
+          creditNoteNumber={previewCreditNote.number}
+          ledgerPhone={ledger.phone_number}
+          companyName={company?.name}
+          onClose={() => setPreviewCreditNote(null)}
           onError={(msg) => setError(msg)}
         />
       ) : null}

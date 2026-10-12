@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FilePlus2, RefreshCw, Search, XCircle } from 'lucide-react';
+import { FilePlus2, FileText, RefreshCw, Search, XCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { cancelCreditNote, createCreditNote, listCreditNotes } from '../api/creditNotes';
 import api, { getApiErrorMessage } from '../api/client';
+import CreditNotePreview from '../components/CreditNotePreview';
 import LedgerCombobox from '../components/LedgerCombobox';
 import StatusToasts from '../components/StatusToasts';
 import EmptyState from '../components/EmptyState';
@@ -81,6 +82,7 @@ export default function CreditNotesPage() {
   const [loadingCreditNotes, setLoadingCreditNotes] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [previewCreditNote, setPreviewCreditNote] = useState<CreditNote | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -953,6 +955,18 @@ export default function CreditNotesPage() {
                       <span>Tax {formatCurrency(creditNote.cgst_amount + creditNote.sgst_amount + creditNote.igst_amount, currencyCode)}</span>
                       <strong style={{ color: 'var(--text)' }}>Total {formatCurrency(creditNote.total_amount, currencyCode)}</strong>
                     </div>
+                    <div className="button-row">
+                    {creditNote.direction !== 'inward' ? (
+                      // An inward note is the supplier's own document — nothing of ours to send.
+                      <button
+                        type="button"
+                        className="button button--secondary"
+                        onClick={() => setPreviewCreditNote(creditNote)}
+                      >
+                        <FileText size={16} />
+                        {creditNote.status === 'active' ? 'View / Share' : 'View'}
+                      </button>
+                    ) : null}
                     {creditNote.status === 'active' ? (
                       <button
                         type="button"
@@ -963,6 +977,7 @@ export default function CreditNotesPage() {
                         {cancellingId === creditNote.id ? 'Cancelling...' : 'Cancel credit note'}
                       </button>
                     ) : null}
+                    </div>
                   </div>
                 </div>
               );
@@ -982,6 +997,18 @@ export default function CreditNotesPage() {
           ) : null}
         </article>
       </section>
+
+      {previewCreditNote ? (
+        <CreditNotePreview
+          creditNoteId={previewCreditNote.id}
+          creditNoteNumber={previewCreditNote.credit_note_number}
+          canShare={previewCreditNote.status === 'active'}
+          ledgerPhone={ledgers.find((entry) => entry.id === previewCreditNote.ledger_id)?.phone_number}
+          companyName={company?.name}
+          onClose={() => setPreviewCreditNote(null)}
+          onError={(message) => setError(message)}
+        />
+      ) : null}
     </>
   );
 }
