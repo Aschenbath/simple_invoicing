@@ -1,4 +1,5 @@
 import csv
+import logging
 from io import BytesIO, StringIO
 from datetime import date, datetime
 
@@ -7,6 +8,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session, joinedload
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 import weasyprint
 
@@ -145,10 +148,10 @@ def create_invoice(
     except HTTPException:
         db.rollback()
         raise
-    except Exception as e:
-        print(f"Error creating invoice: {e}")
+    except Exception:
+        logger.exception("Error creating invoice")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to create invoice")
 
     # The app's core conversion event. Captured after the try block, not inside
     # it: the handler turns any stray exception into a 500, and an invoice that
