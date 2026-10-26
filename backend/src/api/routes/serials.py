@@ -101,7 +101,7 @@ def _build_serial_outs(
     return results
 
 
-@router.get("/scan", response_model=SerialScanOut)
+@router.get("/scan", response_model=SerialScanOut, summary="Scan a serial or SKU code")
 def scan_code(
     request: Request,
     code: str = Query(...),
@@ -163,8 +163,8 @@ def scan_code(
     )
 
 
-@router.get("", response_model=PaginatedSerialOut, include_in_schema=False)
-@router.get("/", response_model=PaginatedSerialOut)
+@router.get("", response_model=PaginatedSerialOut, include_in_schema=False, summary="List serial-tracked units")
+@router.get("/", response_model=PaginatedSerialOut, summary="List serial-tracked units")
 def list_serials(
     product_id: int | None = Query(None),
     status: Literal["in_stock", "sold", "void"] | None = Query(None),

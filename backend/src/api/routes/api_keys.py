@@ -22,7 +22,7 @@ def _generate_raw_key() -> str:
     return _KEY_PREFIX + secrets.token_hex(_KEY_BYTES)
 
 
-@router.get("/verify", response_model=dict)
+@router.get("/verify", response_model=dict, summary="Verify an API key")
 def verify_api_key(
     current_user: User = Depends(get_current_user),
     company: CompanyProfile = Depends(get_active_company),
@@ -31,8 +31,8 @@ def verify_api_key(
     return {"valid": True, "company_id": company.id}
 
 
-@router.post("", response_model=ApiKeyCreateResponse, include_in_schema=False)
-@router.post("/", response_model=ApiKeyCreateResponse, status_code=201)
+@router.post("", response_model=ApiKeyCreateResponse, include_in_schema=False, summary="Create an API key")
+@router.post("/", response_model=ApiKeyCreateResponse, status_code=201, summary="Create an API key", description="Admin only. The raw key is returned once, at creation; only an encrypted copy is stored.")
 def create_api_key(
     payload: ApiKeyCreate,
     db: Session = Depends(get_db),
@@ -68,8 +68,8 @@ def create_api_key(
     )
 
 
-@router.get("", response_model=list[ApiKeyResponse], include_in_schema=False)
-@router.get("/", response_model=list[ApiKeyResponse])
+@router.get("", response_model=list[ApiKeyResponse], include_in_schema=False, summary="List API keys")
+@router.get("/", response_model=list[ApiKeyResponse], summary="List API keys", description="Admin only, newest first.")
 def list_api_keys(
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(UserRole.admin)),
@@ -84,7 +84,7 @@ def list_api_keys(
     return keys
 
 
-@router.delete("/{key_id}", response_model=dict)
+@router.delete("/{key_id}", response_model=dict, summary="Delete an API key")
 def delete_api_key(
     key_id: int,
     db: Session = Depends(get_db),

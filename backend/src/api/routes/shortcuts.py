@@ -28,8 +28,8 @@ DEFAULTS: dict[str, str] = {
 router = APIRouter()
 
 
-@router.get("", response_model=UserShortcutsListResponse, include_in_schema=False)
-@router.get("/", response_model=UserShortcutsListResponse)
+@router.get("", response_model=UserShortcutsListResponse, include_in_schema=False, summary="List keyboard shortcuts", description="Default shortcuts merged with the user's customizations.")
+@router.get("/", response_model=UserShortcutsListResponse, summary="List keyboard shortcuts", description="Default shortcuts merged with the user's customizations.")
 def list_shortcuts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -43,7 +43,7 @@ def list_shortcuts(
     return UserShortcutsListResponse(shortcuts=merged)
 
 
-@router.put("/{action_key}", response_model=UserShortcutResponse)
+@router.put("/{action_key}", response_model=UserShortcutResponse, summary="Set a keyboard shortcut", description="Creates or updates the user's custom shortcut for an action. Unknown action keys are rejected with 400.")
 def upsert_shortcut(
     action_key: str,
     payload: UserShortcutUpdate,
@@ -72,7 +72,7 @@ def upsert_shortcut(
     return UserShortcutResponse(action_key=row.action_key, shortcut_key=row.shortcut_key)
 
 
-@router.delete("/{action_key}", status_code=204)
+@router.delete("/{action_key}", status_code=204, summary="Reset a keyboard shortcut", description="Deletes the user's custom shortcut for an action, restoring the default. 404 when no custom shortcut exists.")
 def delete_shortcut(
     action_key: str,
     db: Session = Depends(get_db),
@@ -89,8 +89,8 @@ def delete_shortcut(
     db.commit()
 
 
-@router.delete("", status_code=204, include_in_schema=False)
-@router.delete("/", status_code=204)
+@router.delete("", status_code=204, include_in_schema=False, summary="Reset all keyboard shortcuts", description="Deletes all of the user's custom shortcuts, restoring defaults.")
+@router.delete("/", status_code=204, summary="Reset all keyboard shortcuts", description="Deletes all of the user's custom shortcuts, restoring defaults.")
 def delete_all_shortcuts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
