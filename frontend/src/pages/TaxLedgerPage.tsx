@@ -198,19 +198,19 @@ export default function TaxLedgerPage() {
             <table className="invoice-feed-table tax-ledger-table">
               <thead className="tax-ledger-thead--sticky">
                 <tr>
-                  <th>Date</th>
-                  <th>Reference</th>
-                  <th>Ledger</th>
-                  <th>GSTIN</th>
-                  <th>Type</th>
-                  <th>GST %</th>
-                  <th className="text-right">Taxable</th>
-                  <th className="text-right">Dr SGST</th>
-                  <th className="text-right">Dr CGST</th>
-                  <th className="text-right">Dr IGST</th>
-                  <th className="text-right">Cr SGST</th>
-                  <th className="text-right">Cr CGST</th>
-                  <th className="text-right">Cr IGST</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Reference</th>
+                  <th scope="col">Ledger</th>
+                  <th scope="col">GSTIN</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">GST %</th>
+                  <th scope="col" className="text-right">Taxable</th>
+                  <th scope="col" className="text-right">Dr SGST</th>
+                  <th scope="col" className="text-right">Dr CGST</th>
+                  <th scope="col" className="text-right">Dr IGST</th>
+                  <th scope="col" className="text-right">Cr SGST</th>
+                  <th scope="col" className="text-right">Cr CGST</th>
+                  <th scope="col" className="text-right">Cr IGST</th>
                 </tr>
               </thead>
               <tbody>
@@ -566,11 +566,11 @@ function TaxLiabilityPanel({
           <table className="tax-setoff__table">
             <thead>
               <tr>
-                <th>Head</th>
-                <th className="text-right">Output tax</th>
-                <th className="text-right">Input credit</th>
-                <th className="text-right">Set off</th>
-                <th className="text-right">Payable</th>
+                <th scope="col">Head</th>
+                <th scope="col" className="text-right">Output tax</th>
+                <th scope="col" className="text-right">Input credit</th>
+                <th scope="col" className="text-right">Set off</th>
+                <th scope="col" className="text-right">Payable</th>
               </tr>
             </thead>
             <tbody>

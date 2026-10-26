@@ -315,10 +315,10 @@ export default function Gstr1FilingPage() {
                 <table className="invoice-feed-table">
                   <thead>
                     <tr>
-                      <th>Invoice #</th>
-                      <th>Field</th>
-                      <th>Issue</th>
-                      <th>Severity</th>
+                      <th scope="col">Invoice #</th>
+                      <th scope="col">Field</th>
+                      <th scope="col">Issue</th>
+                      <th scope="col">Severity</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -462,13 +462,13 @@ function Gstr1SummaryView({
             <table className="invoice-feed-table">
               <thead>
                 <tr>
-                  <th>HSN/SAC</th>
-                  <th className="text-right">Qty</th>
-                  <th className="text-right">Taxable Value</th>
-                  <th className="text-right">CGST</th>
-                  <th className="text-right">SGST</th>
-                  <th className="text-right">IGST</th>
-                  <th className="text-right">Total Tax</th>
+                  <th scope="col">HSN/SAC</th>
+                  <th scope="col" className="text-right">Qty</th>
+                  <th scope="col" className="text-right">Taxable Value</th>
+                  <th scope="col" className="text-right">CGST</th>
+                  <th scope="col" className="text-right">SGST</th>
+                  <th scope="col" className="text-right">IGST</th>
+                  <th scope="col" className="text-right">Total Tax</th>
                 </tr>
               </thead>
               <tbody>

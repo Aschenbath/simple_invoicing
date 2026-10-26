@@ -167,10 +167,10 @@ export default function KeyboardShortcutsPage() {
         <table className="table" style={{ width: '100%' }}>
           <thead>
             <tr>
-              <th>Action</th>
-              <th>Default Shortcut</th>
-              <th>Your Shortcut</th>
-              <th style={{ width: '160px' }} />
+              <th scope="col">Action</th>
+              <th scope="col">Default Shortcut</th>
+              <th scope="col">Your Shortcut</th>
+              <th scope="col" style={{ width: '160px' }} />
             </tr>
           </thead>
           <tbody>

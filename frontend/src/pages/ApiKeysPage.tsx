@@ -287,11 +287,11 @@ export default function ApiKeysPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Key prefix</th>
-                <th>Expires</th>
-                <th>Status</th>
-                <th style={{ width: '48px' }} />
+                <th scope="col">Name</th>
+                <th scope="col">Key prefix</th>
+                <th scope="col">Expires</th>
+                <th scope="col">Status</th>
+                <th scope="col" style={{ width: '48px' }} />
               </tr>
             </thead>
             <tbody>
