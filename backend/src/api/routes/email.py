@@ -22,7 +22,7 @@ from src.models.payment import Payment
 from src.models.product import Product
 from src.models.user import User, UserRole
 from src.services.credit_note_reporting import get_credit_note_ledger_summary
-from src.services.invoice_payments import build_invoice_payment_summaries
+from src.services.invoice_payments import build_invoice_payment_summaries, open_amounts_by_ledger
 from src.services.mail import send_email
 from src.services.share_documents import (
     RESOURCE_INVOICE,
@@ -510,6 +510,9 @@ async def send_due_reminders(
 
     # Compute payment summaries for all invoices at once
     payment_summaries = build_invoice_payment_summaries(db, all_invoices)
+    # What we owe each ledger on open purchase invoices; a ledger that is also a
+    # supplier is not chased for what it is already owed back.
+    open_amounts = open_amounts_by_ledger(db, list(invoices_by_ledger), company_id=active_company.id)
 
     # Identify ledgers with outstanding dues and build per-ledger unpaid lists
     sent: list[dict] = []
@@ -543,8 +546,29 @@ async def send_due_reminders(
         to_email = ledger.email if ledger else None
         ledger_name = ledger.name if ledger else (ledger_invoices[0].ledger_name or f"Ledger #{ledger_id}")
 
+        receivable, payable = open_amounts.get(ledger_id, (outstanding_balance, 0.0))
+        net_receivable = round(receivable - payable, 2)
+        if payable > 0 and net_receivable <= 0:
+            skipped.append(
+                {
+                    "ledger_id": ledger_id,
+                    "ledger_name": ledger_name,
+                    "reason": "Net balance is nil after open purchase invoices",
+                    "reason_code": "net_payable_offset",
+                    "net_receivable": net_receivable,
+                }
+            )
+            continue
+
         if not to_email:
-            skipped.append({"ledger_id": ledger_id, "ledger_name": ledger_name, "reason": "No email address"})
+            skipped.append(
+                {
+                    "ledger_id": ledger_id,
+                    "ledger_name": ledger_name,
+                    "reason": "No email address",
+                    "reason_code": "no_email",
+                }
+            )
             continue
 
         last_payment_query = (

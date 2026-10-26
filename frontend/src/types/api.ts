@@ -337,6 +337,8 @@ export type Invoice = {
   outstanding_amount: number;
   payment_status: 'unpaid' | 'partial' | 'paid';
   due_in_days: number | null;
+  ledger_payable_amount?: number;
+  ledger_net_receivable?: number | null;
   created_at: string;
   items: InvoiceItem[];
   warnings?: string[];

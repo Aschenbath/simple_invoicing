@@ -170,9 +170,15 @@ export default function InvoiceDuesPage() {
       if (result.sent.length > 0) {
         parts.push(`Sent to ${result.sent.length} ledgers`);
       }
-      if (result.skipped.length > 0) {
-        const names = result.skipped.map((s) => s.ledger_name).join(', ');
-        parts.push(`Skipped ${result.skipped.length} (no email): ${names}`);
+      const noEmail = result.skipped.filter((s) => s.reason_code !== 'net_payable_offset');
+      if (noEmail.length > 0) {
+        const names = noEmail.map((s) => s.ledger_name).join(', ');
+        parts.push(`Skipped ${noEmail.length} (no email): ${names}`);
+      }
+      const offset = result.skipped.filter((s) => s.reason_code === 'net_payable_offset');
+      if (offset.length > 0) {
+        const names = offset.map((s) => s.ledger_name).join(', ');
+        parts.push(`Skipped ${offset.length} (you owe them as much as they owe you): ${names}`);
       }
       if (result.failed.length > 0) {
         const names = result.failed.map((f) => f.ledger_name).join(', ');
@@ -380,6 +386,13 @@ export default function InvoiceDuesPage() {
                         {' · '}
                         Remaining {formatCurrency(invoice.outstanding_amount, currencyCode)}
                       </span>
+                      {(invoice.ledger_payable_amount ?? 0) > 0 ? (
+                        <span className="table-subtext">
+                          You also owe this party {formatCurrency(invoice.ledger_payable_amount ?? 0, currencyCode)} (net{' '}
+                          {formatCurrency(Math.abs(invoice.ledger_net_receivable ?? 0), currencyCode)}{' '}
+                          {(invoice.ledger_net_receivable ?? 0) > 0 ? 'receivable' : 'payable'})
+                        </span>
+                      ) : null}
                     </div>
                     <span className="invoice-row__price">{formatCurrency(invoice.total_amount, currencyCode)}</span>
                     <div className="invoice-row__actions">

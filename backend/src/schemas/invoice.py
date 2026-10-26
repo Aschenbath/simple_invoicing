@@ -105,6 +105,10 @@ class InvoiceOut(BaseModel):
     outstanding_amount: float = 0
     payment_status: str = "unpaid"
     due_in_days: int | None = None
+    # Dues page only: what we owe this ledger on open purchase invoices, and
+    # its open receivable net of that. Display only; allocation is unaffected.
+    ledger_payable_amount: float = 0
+    ledger_net_receivable: float | None = None
     tax_inclusive: bool = False
     apply_round_off: bool = False
     round_off_amount: float = 0

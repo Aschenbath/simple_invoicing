@@ -114,6 +114,44 @@ def build_invoice_payment_summaries(
     return summaries
 
 
+def open_amounts_by_ledger(
+    db: Session,
+    ledger_ids: list[int],
+    *,
+    company_id: int,
+) -> dict[int, tuple[float, float]]:
+    """Open (receivable, payable) per ledger, for display and reminders only.
+
+    Receivable is the remaining amount of active sales invoices, payable that of
+    active purchase invoices. Allocation never offsets one against the other;
+    this just lets a ledger that is both customer and supplier be shown net.
+    """
+    if not ledger_ids:
+        return {}
+
+    invoices = (
+        db.query(Invoice)
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.ledger_id.in_(ledger_ids),
+            Invoice.voucher_type.in_(["sales", "purchase"]),
+            Invoice.status == "active",
+        )
+        .all()
+    )
+    summaries = build_invoice_payment_summaries(db, invoices)
+
+    totals: dict[int, list[Decimal]] = {}
+    for invoice in invoices:
+        bucket = totals.setdefault(invoice.ledger_id, [Decimal("0.00"), Decimal("0.00")])
+        remaining = Decimal(str(summaries[invoice.id].remaining_amount))
+        bucket[0 if invoice.voucher_type == "sales" else 1] += remaining
+    return {
+        ledger_id: (float(_money(receivable)), float(_money(payable)))
+        for ledger_id, (receivable, payable) in totals.items()
+    }
+
+
 def get_outstanding_invoices_for_ledger(
     db: Session,
     ledger_id: int,
