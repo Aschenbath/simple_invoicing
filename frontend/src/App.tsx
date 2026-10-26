@@ -37,6 +37,7 @@ import EmailHistoryPage from './pages/EmailHistoryPage';
 import MyListingsPage from './pages/marketplace/MyListingsPage';
 import MarketplaceOrdersPage from './pages/marketplace/MarketplaceOrdersPage';
 import MarketplaceSettingsPage from './pages/marketplace/MarketplaceSettingsPage';
+import NotFoundPage from './pages/NotFoundPage';
 import SettingsLayout from './pages/settings/SettingsLayout';
 import SettingsOverviewPage from './pages/settings/SettingsOverviewPage';
 import { LEGACY_REDIRECTS } from './config/navigation';
@@ -244,7 +245,7 @@ function AppRoutes() {
           customer with a link, not a user of this app. */}
       <Route path="/s/:token" element={<PublicShareRedirect />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Protected><CompanyRequired><Layout><NotFoundPage /></Layout></CompanyRequired></Protected>} />
     </Routes>
   );
 }
