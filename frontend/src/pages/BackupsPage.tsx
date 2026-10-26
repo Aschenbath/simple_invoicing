@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import api, { getApiErrorMessage } from '../api/client';
 import StatusToasts from '../components/StatusToasts';
+import { formatDateTime } from '../utils/formatting';
 import type {
   BackupCreateResponse,
   BackupPreflightResponse,
@@ -8,14 +9,6 @@ import type {
   BackupScheduleResponse,
   BackupSummary,
 } from '../types/api';
-
-function formatDate(value: string) {
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return value;
-  }
-}
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -259,7 +252,7 @@ export default function BackupsPage() {
                     create yourself are never deleted.
                   </p>
                   {schedule.next_run_at ? (
-                    <p className="muted-text">Next run: {formatDate(schedule.next_run_at)}</p>
+                    <p className="muted-text">Next run: {formatDateTime(schedule.next_run_at)}</p>
                   ) : null}
                   {schedule.last_run_at ? (
                     <p className="muted-text" style={{ marginTop: '10px' }}>
@@ -272,7 +265,7 @@ export default function BackupsPage() {
                       >
                         {schedule.last_status === 'failed' ? 'Last run failed' : 'Last run succeeded'}
                       </span>{' '}
-                      {formatDate(schedule.last_run_at)}
+                      {formatDateTime(schedule.last_run_at)}
                     </p>
                   ) : (
                     <p className="muted-text">No automatic backup has run yet on this server.</p>
@@ -328,7 +321,7 @@ export default function BackupsPage() {
                   <div className="table-row__meta">
                     <strong>{item.file_name}</strong>
                     <span className="table-subtext">
-                      {formatDate(item.created_at)} · {formatSize(item.size_bytes)} ·{' '}
+                      {formatDateTime(item.created_at)} · {formatSize(item.size_bytes)} ·{' '}
                       {item.file_name.startsWith(AUTO_BACKUP_PREFIX) ? 'Automatic' : 'Manual'}
                     </span>
                     {item.migration_head ? (
@@ -389,7 +382,7 @@ export default function BackupsPage() {
               </p>
               {preflight.reason ? <p className="muted-text">{preflight.reason}</p> : null}
               {preflight.backup_created_at ? (
-                <p className="muted-text">Backup created: {formatDate(preflight.backup_created_at)}</p>
+                <p className="muted-text">Backup created: {formatDateTime(preflight.backup_created_at)}</p>
               ) : null}
               {preflight.backup_migration_head ? (
                 <p className="muted-text">Backup migration head: {preflight.backup_migration_head}</p>

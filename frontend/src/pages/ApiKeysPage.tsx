@@ -6,6 +6,7 @@ import StatusToasts from '../components/StatusToasts';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import ModalCloseButton from '../components/ModalCloseButton';
+import { formatDate } from '../utils/formatting';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -27,7 +28,7 @@ function formatExpiry(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
   const expired = d < now;
-  const label = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  const label = formatDate(iso);
   return expired ? `${label} (expired)` : label;
 }
 

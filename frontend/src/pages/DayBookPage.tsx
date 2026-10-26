@@ -4,7 +4,7 @@ import StatusToasts from '../components/StatusToasts';
 import ScopeBar, { Metric } from '../components/ScopeBar';
 import DateRangePresets from '../components/DateRangePresets';
 import type { CompanyProfile, DayBook, DayBookEntry } from '../types/api';
-import formatCurrency from '../utils/formatting';
+import formatCurrency, { formatDate } from '../utils/formatting';
 import { toIsoDate } from '../utils/dateRanges';
 import { useFY } from '../context/FYContext';
 
@@ -17,13 +17,6 @@ function defaultDateRange() {
     toDate: toIsoDate(today),
   };
 }
-
-const DAY_HEADING = new Intl.DateTimeFormat(undefined, {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
 
 /** `sales` → `sales`, `credit note` → `credit-note`; the modifier suffix. */
 function tagModifier(voucherType: string) {
@@ -299,7 +292,7 @@ export default function DayBookPage() {
                 {days.map((day) => (
                   <div key={day.date} className="register__day-group">
                     <div className="register__day">
-                      <span>{DAY_HEADING.format(new Date(`${day.date}T00:00:00`))}</span>
+                      <span>{formatDate(day.date)}</span>
                       <span className="register__day-count">
                         {day.entries.length} {day.entries.length === 1 ? 'voucher' : 'vouchers'}
                       </span>
@@ -307,7 +300,7 @@ export default function DayBookPage() {
 
                     {day.entries.map((entry, idx) => (
                       <div key={`${entry.entry_type}-${entry.entry_id}-${idx}`} className="register__row">
-                        <span className="register__date">{entry.date.slice(0, 10)}</span>
+                        <span className="register__date">{formatDate(entry.date)}</span>
                         <span className="register__cell register__voucher">
                           <span className={`register__tag register__tag--${tagModifier(entry.voucher_type)}`}>
                             {entry.voucher_type}

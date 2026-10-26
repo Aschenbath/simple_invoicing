@@ -7,7 +7,7 @@
  * failure for the caller to toast.
  */
 import api, { cleanParams, getBlobErrorMessage } from '../../api/client';
-import formatCurrency from '../../utils/formatting';
+import formatCurrency, { formatDateTime } from '../../utils/formatting';
 import { formatQuantity, isLowStock } from './types';
 import type { CatalogueFilters, CatalogueRow, PaginatedCatalogue, SortKey } from './types';
 
@@ -159,7 +159,7 @@ function buildReportHtml(
   filters: ExportFilters,
   currencyCode: string
 ): string {
-  const generatedAt = new Date().toLocaleString();
+  const generatedAt = formatDateTime(new Date());
   const capped = total > rows.length;
   const countLine = capped
     ? `Showing ${rows.length} of ${total} items — this report is capped at ${MAX_REPORT_ROWS} rows`

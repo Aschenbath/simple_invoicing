@@ -7,6 +7,7 @@ import StatusToasts from '../components/StatusToasts';
 import ScopeBar, { Metric } from '../components/ScopeBar';
 import DateRangePresets from '../components/DateRangePresets';
 import EmptyState from '../components/EmptyState';
+import { formatDateTime } from '../utils/formatting';
 
 const PAGE_SIZE = 20;
 
@@ -52,18 +53,6 @@ export default function EmailHistoryPage() {
 
   function handleFilterChange() {
     setPage(1);
-  }
-
-  function formatDate(iso: string) {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   }
 
   return (
@@ -184,7 +173,7 @@ export default function EmailHistoryPage() {
                       {log.cc ? ` · CC: ${log.cc}` : ''}
                     </span>
                     <span className="table-subtext">
-                      {formatDate(log.sent_at)} · {EMAIL_TYPE_LABELS[log.email_type] ?? log.email_type}
+                      {formatDateTime(log.sent_at)} · {EMAIL_TYPE_LABELS[log.email_type] ?? log.email_type}
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>

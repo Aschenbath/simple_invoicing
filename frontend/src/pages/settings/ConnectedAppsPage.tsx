@@ -6,6 +6,7 @@ import { fetchGrants, revokeGrant } from '../../features/oauth/api';
 import { SCOPE_LABELS, type OAuthGrant } from '../../features/oauth/types';
 import StatusToasts from '../../components/StatusToasts';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { formatDate } from '../../utils/formatting';
 
 /**
  * The other end of the consent screen: every MCP client this user approved,
@@ -21,9 +22,8 @@ const GRANTS_QUERY_KEY = ['oauth-grants'];
 
 function formatMoment(value: string | null | undefined, fallback: string): string {
   if (!value) return fallback;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return fallback;
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  const label = formatDate(value);
+  return label === '—' ? fallback : label;
 }
 
 /**

@@ -10,7 +10,7 @@ import {
   SlidersHorizontal,
   Trash2,
 } from 'lucide-react';
-import formatCurrency from '../../utils/formatting';
+import formatCurrency, { formatDate } from '../../utils/formatting';
 import { deepLinkClass } from '../../utils/deepLink';
 import PublishToMarketplaceButton from '../../components/PublishToMarketplaceButton';
 import { formatQuantity, isLowStock } from './types';
@@ -73,13 +73,6 @@ type CatalogueTableProps = {
   onOpenFullEdit: (row: CatalogueRow) => void;
   onDelete: (row: CatalogueRow) => void;
 };
-
-function formatDate(value: string | null): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 export default function CatalogueTable({
   rows,

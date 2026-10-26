@@ -7,6 +7,7 @@ import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { fetchAvailableSerials } from '../../features/serials/api';
 import type { Serial } from '../../features/serials/types';
 import type { CatalogueRow } from './types';
+import { formatDate } from '../../utils/formatting';
 
 const PAGE_SIZE = 50;
 
@@ -25,13 +26,6 @@ type SerialHistoryDrawerProps = {
   /** Pre-fills the filter when arriving from a scanned-code deep link. */
   initialSearch?: string;
 };
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 export default function SerialHistoryDrawer({
   row,
@@ -172,7 +166,7 @@ export default function SerialHistoryDrawer({
                         <dt>In</dt>
                         <dd>
                           {inRef.invoice_number ?? `#${inRef.id}`}
-                          {formatDate(inRef.invoice_date) ? ` · ${formatDate(inRef.invoice_date)}` : ''}
+                          {inRef.invoice_date ? ` · ${formatDate(inRef.invoice_date)}` : ''}
                         </dd>
                       </div>
                     ) : null}
@@ -181,7 +175,7 @@ export default function SerialHistoryDrawer({
                         <dt>Out</dt>
                         <dd>
                           {outRef.invoice_number ?? `#${outRef.id}`}
-                          {formatDate(outRef.invoice_date)
+                          {outRef.invoice_date
                             ? ` · ${formatDate(outRef.invoice_date)}`
                             : ''}
                         </dd>

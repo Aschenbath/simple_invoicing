@@ -1,24 +1,5 @@
-/** Shared date/time formatting for the marketplace pages. */
-
-export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString(undefined, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-}
+/** Marketplace display helpers. Absolute dates use the app-wide format. */
+export { formatDate, formatDateTime } from '../../../utils/formatting';
 
 /**
  * "12 min ago". Used wherever a marketplace value is a snapshot rather than a

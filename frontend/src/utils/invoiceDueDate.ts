@@ -1,3 +1,5 @@
+import { formatDate } from './formatting';
+
 export type DueDateMode = 'none' | 'exact' | 'days';
 
 export type DueDateFormState = {
@@ -65,8 +67,5 @@ export function createDueDateFormState(dueDate?: string | null): DueDateFormStat
 }
 
 export function formatInvoiceDateLabel(value: string | null | undefined): string {
-  if (!value) {
-    return '\u2014';
-  }
-  return new Date(value).toLocaleDateString();
+  return formatDate(value);
 }

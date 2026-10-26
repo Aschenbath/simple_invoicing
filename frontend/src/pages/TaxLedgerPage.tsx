@@ -12,7 +12,7 @@ import type {
   TaxLiability,
   TaxLiabilityBucket,
 } from '../types/api';
-import formatCurrency from '../utils/formatting';
+import formatCurrency, { formatDate } from '../utils/formatting';
 
 function defaultDateRange() {
   const today = new Date();
@@ -236,7 +236,7 @@ export default function TaxLedgerPage() {
                       style={{ height: `${virtualRow.size}px` }}
                     >
                       <td>
-                        {new Date(entry.date).toLocaleDateString()}
+                        {formatDate(entry.date)}
                       </td>
                       <td>
                         <strong className="text-xs">{entry.reference_number}</strong>

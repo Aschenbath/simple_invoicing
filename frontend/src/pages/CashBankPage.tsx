@@ -6,7 +6,7 @@ import StatusToasts from '../components/StatusToasts';
 import ScopeBar, { Metric } from '../components/ScopeBar';
 import DateRangePresets from '../components/DateRangePresets';
 import type { CompanyAccount, CompanyProfile, Ledger, Payment, PaymentCreate, PaymentUpdate } from '../types/api';
-import formatCurrency from '../utils/formatting';
+import formatCurrency, { formatDate } from '../utils/formatting';
 import { useFY } from '../context/FYContext';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import { deepLinkClass, numericParam, useDeepLinkScroll } from '../utils/deepLink';
@@ -434,7 +434,7 @@ export default function CashBankPage() {
                     <div className="invoice-row__meta">
                       <strong>{entry.voucherLabel} #{entry.id}</strong>
                       <span className="table-subtext">
-                        {new Date(entry.date).toLocaleDateString()} · {entry.ledgerName}
+                        {formatDate(entry.date)} · {entry.ledgerName}
                       </span>
                       <span className="table-subtext">{entry.particulars}</span>
                       {entry.description ? <span className="table-subtext">{entry.description}</span> : null}

@@ -4,6 +4,7 @@ import type { BOMComponent, PaginatedProducts, Product, ProductionTransaction } 
 import StatusToasts from '../components/StatusToasts';
 import EmptyState from '../components/EmptyState';
 import { fetchBOM, fetchProductionHistory, produceBatch } from '../services/bomApi';
+import { formatDateTime } from '../utils/formatting';
 
 export default function ProduceItemsPage() {
   // Producable products list
@@ -113,17 +114,6 @@ export default function ProduceItemsPage() {
     } finally {
       setLoadingHistory(false);
     }
-  }
-
-  function formatDate(iso: string | null) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   }
 
   const qty = Number(quantity) || 0;
@@ -284,7 +274,7 @@ export default function ProduceItemsPage() {
                   <div className="table-row__meta">
                     <strong>{productNameMap[tx.product_id] ?? `Product #${tx.product_id}`}</strong>
                     <span className="table-subtext">
-                      {formatDate(tx.created_at)}
+                      {formatDateTime(tx.created_at)}
                       {tx.notes ? ` · ${tx.notes}` : ''}
                     </span>
                   </div>

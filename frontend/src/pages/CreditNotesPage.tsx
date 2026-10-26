@@ -21,7 +21,7 @@ import type {
   Ledger,
   Product,
 } from '../types/api';
-import formatCurrency from '../utils/formatting';
+import formatCurrency, { formatDate } from '../utils/formatting';
 import { deepLinkClass, numericParam, useDeepLinkScroll } from '../utils/deepLink';
 
 type SelectedLineItem = {
@@ -44,11 +44,6 @@ const createCreditNoteTypeLabels: Record<'return' | 'discount', string> = {
 
 function createQuantityKey(invoiceId: number, invoiceItemId: number) {
   return `${invoiceId}:${invoiceItemId}`;
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return 'N/A';
-  return new Date(value).toLocaleDateString();
 }
 
 function roundMoney(value: number) {

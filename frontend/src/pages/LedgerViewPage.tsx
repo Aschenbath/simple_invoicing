@@ -13,7 +13,7 @@ import CreateInvoiceModal from '../components/CreateInvoiceModal';
 import SendEmailModal from '../components/SendEmailModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ModalCloseButton from '../components/ModalCloseButton';
-import formatCurrency from '../utils/formatting';
+import formatCurrency, { formatDate } from '../utils/formatting';
 import { useFY } from '../context/FYContext';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import { fetchOutstandingInvoices, fetchLedgerAddresses, createLedgerAddress, updateLedgerAddress, deleteLedgerAddress } from '../features/invoices/api';
@@ -923,7 +923,7 @@ export default function LedgerViewPage() {
                   <div key={`${entry.entry_type}-${entry.entry_id}-${idx}`} className="invoice-row">
                     <div className="invoice-row__meta">
                       <strong>{entry.reference_number || `${entry.voucher_type} #${entry.entry_id}`}</strong>
-                      <span className="table-subtext">{new Date(entry.date).toLocaleDateString()} · {entry.particulars}</span>
+                      <span className="table-subtext">{formatDate(entry.date)} · {entry.particulars}</span>
                       {entry.entry_type === 'payment' ? (
                         <>
                           <span className="table-subtext">
