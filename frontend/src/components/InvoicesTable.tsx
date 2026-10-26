@@ -12,15 +12,16 @@ export default function InvoicesTable({ invoices, currencyCode, onRowClick }: In
   return (
     <div className="invoice-feed-table-wrap">
       <table className="invoice-feed-table">
+        <caption className="sr-only">Invoices</caption>
         <thead>
           <tr>
-            <th>Invoice #</th>
-            <th>Date</th>
-            <th>Due</th>
-            <th>Buyer / Supplier</th>
-            <th>Amount</th>
-            <th>Type</th>
-            <th>Status</th>
+            <th scope="col">Invoice #</th>
+            <th scope="col">Date</th>
+            <th scope="col">Due</th>
+            <th scope="col">Buyer / Supplier</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Type</th>
+            <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody>
