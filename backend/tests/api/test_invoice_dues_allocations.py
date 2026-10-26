@@ -293,8 +293,14 @@ def test_due_reminders_skip_ledger_whose_net_is_zero(client):
     assert body["skipped"][0]["net_receivable"] == 0
     send_email_mock.assert_not_awaited()
 
-    # The invoice itself is still listed on the dues page.
-    assert len(client.get("/api/invoices/dues").json()["items"]) == 1
+
+def test_dues_endpoint_hides_ledger_whose_net_is_zero(client):
+    _seed_customer_and_supplier(client, 100, 100)
+
+    body = client.get("/api/invoices/dues").json()
+
+    assert body["items"] == []
+    assert body["total"] == 0
 
 
 def test_due_reminders_still_sent_when_sales_exceed_purchases(client):

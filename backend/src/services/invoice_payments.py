@@ -152,6 +152,11 @@ def open_amounts_by_ledger(
     }
 
 
+def is_offset_by_payables(receivable: float, payable: float) -> bool:
+    """True when a ledger owes us nothing net because open payables cover its receivable."""
+    return payable > 0 and round(receivable - payable, 2) <= 0
+
+
 def get_outstanding_invoices_for_ledger(
     db: Session,
     ledger_id: int,

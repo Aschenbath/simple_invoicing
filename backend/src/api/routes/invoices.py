@@ -21,7 +21,11 @@ from src.schemas.invoice import InvoiceCreate, InvoiceOut, PaginatedInvoiceOut
 from src.api.deps import get_active_company, get_current_user
 from src.core.analytics import distinct_id_for, track
 from src.services.financial_year import get_active_fy, get_fy_for_date
-from src.services.invoice_payments import build_invoice_payment_summaries, open_amounts_by_ledger
+from src.services.invoice_payments import (
+    build_invoice_payment_summaries,
+    is_offset_by_payables,
+    open_amounts_by_ledger,
+)
 from src.services.pdf_templates import (
     _build_invoice_html,
     _build_multi_copy_invoice_html,
@@ -477,6 +481,19 @@ def list_due_invoices(
             if payment_summaries[invoice.id].remaining_amount > 0
         ]
 
+        # Ledgers that are also suppliers: what we owe them is shown next to the dues,
+        # and a ledger whose receivable is fully offset by payables is not chased.
+        open_amounts = open_amounts_by_ledger(
+            db,
+            list({invoice.ledger_id for invoice in outstanding_invoices if invoice.ledger_id is not None}),
+            company_id=active_company.id,
+        )
+        outstanding_invoices = [
+            invoice
+            for invoice in outstanding_invoices
+            if not is_offset_by_payables(*open_amounts.get(invoice.ledger_id, (0.0, 0.0)))
+        ]
+
         total = len(outstanding_invoices)
         page_start = (page - 1) * page_size
         page_end = page_start + page_size
@@ -485,12 +502,6 @@ def list_due_invoices(
         _enrich_items_with_serials(paged_invoices, db)
         items = [_to_invoice_out(invoice, payment_summary=payment_summaries.get(invoice.id)) for invoice in paged_invoices]
 
-        # Ledgers that are also suppliers: show what we owe them next to the dues.
-        open_amounts = open_amounts_by_ledger(
-            db,
-            list({invoice.ledger_id for invoice in paged_invoices if invoice.ledger_id is not None}),
-            company_id=active_company.id,
-        )
         for item in items:
             receivable, payable = open_amounts.get(item.ledger_id, (0.0, 0.0))
             item.ledger_payable_amount = payable

@@ -22,7 +22,11 @@ from src.models.payment import Payment
 from src.models.product import Product
 from src.models.user import User, UserRole
 from src.services.credit_note_reporting import get_credit_note_ledger_summary
-from src.services.invoice_payments import build_invoice_payment_summaries, open_amounts_by_ledger
+from src.services.invoice_payments import (
+    build_invoice_payment_summaries,
+    is_offset_by_payables,
+    open_amounts_by_ledger,
+)
 from src.services.mail import send_email
 from src.services.share_documents import (
     RESOURCE_INVOICE,
@@ -548,7 +552,7 @@ async def send_due_reminders(
 
         receivable, payable = open_amounts.get(ledger_id, (outstanding_balance, 0.0))
         net_receivable = round(receivable - payable, 2)
-        if payable > 0 and net_receivable <= 0:
+        if is_offset_by_payables(receivable, payable):
             skipped.append(
                 {
                     "ledger_id": ledger_id,
