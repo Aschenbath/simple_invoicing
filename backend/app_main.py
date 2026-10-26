@@ -94,7 +94,57 @@ async def lifespan(_app: FastAPI):
     shutdown_analytics()
 
 
-app = FastAPI(title="Simple Invoicing API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="Simple Invoicing API",
+    version="0.1.0",
+    description=(
+        "API for Simple Invoicing: create and manage GST invoices, ledgers, "
+        "payments, products, inventory, and related business documents. "
+        "Most endpoints require authentication: sign in at "
+        "POST /api/auth/login for a JWT bearer token, or use an API key. "
+        "Public share links (/s/{token}) and GET /api/health need no "
+        "authentication."
+    ),
+    contact={
+        "name": "Simple Invoicing",
+        "url": "https://github.com/nikhilb2/simple_invoicing",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://github.com/nikhilb2/simple_invoicing/blob/main/LICENSE",
+    },
+    openapi_tags=[
+        {"name": "auth", "description": "Sign-in, sign-out, and current-user endpoints."},
+        {"name": "users", "description": "User accounts and roles."},
+        {"name": "products", "description": "Product catalogue."},
+        {"name": "inventory", "description": "Stock levels and inventory movements."},
+        {"name": "bom", "description": "Bills of materials for products."},
+        {"name": "invoices", "description": "GST invoices and their lifecycle."},
+        {"name": "ledgers", "description": "Customer and supplier ledgers."},
+        {"name": "company", "description": "Company profile and settings."},
+        {"name": "company-accounts", "description": "Company bank and account details."},
+        {"name": "payments", "description": "Payments against invoices and ledgers."},
+        {"name": "smtp", "description": "SMTP configuration for outgoing mail."},
+        {"name": "email", "description": "Send invoices, statements, and payment reminders by email."},
+        {"name": "shortcuts", "description": "Per-user keyboard shortcuts."},
+        {"name": "invoice-series", "description": "Numbering series for invoices."},
+        {"name": "financial-years", "description": "Financial year definitions."},
+        {"name": "credit-notes", "description": "Credit notes against invoices."},
+        {"name": "backups", "description": "Database backups and restores."},
+        {"name": "email-logs", "description": "Log of sent emails."},
+        {"name": "api-keys", "description": "API keys for programmatic access."},
+        {"name": "dashboard", "description": "Dashboard metrics."},
+        {"name": "analytics", "description": "Sales analytics and reports."},
+        {"name": "marketplace", "description": "Marketplace connection settings."},
+        {"name": "serials", "description": "Serial-number scanning and tracking."},
+        {"name": "share", "description": "Share links for invoices and documents."},
+        {"name": "public-share", "description": "Public, unauthenticated invoice share pages."},
+        {"name": "oauth", "description": "OAuth authorization server for MCP clients."},
+        {"name": "well-known", "description": "OAuth discovery documents (RFC 8414 / RFC 9728)."},
+        {"name": "health", "description": "Service health check."},
+    ],
+    lifespan=lifespan,
+)
 
 
 def get_cors_origins() -> list[str]:
@@ -201,8 +251,8 @@ app.include_router(share_routes.router, prefix="/api/share", tags=["share"])
 # redirects to /, and the customer lands on a LOGIN SCREEN -- the worst possible
 # failure mode for a link sent to someone who has no account. The page builds its
 # own links from the request path, so both mounts work end to end.
-app.include_router(public_share_routes.router)
-app.include_router(public_share_routes.router, prefix="/api")
+app.include_router(public_share_routes.router, tags=["public-share"])
+app.include_router(public_share_routes.router, prefix="/api", tags=["public-share"])
 # The OAuth server exists to authorize MCP clients, so it is mounted only when MCP
 # is on. Serving discovery documents while MCP is disabled would advertise an
 # authorization server at whatever PUBLIC_API_BASE_URL happens to default to and
@@ -213,7 +263,7 @@ if settings.MCP_ENABLED:
     # RFC 8414 / RFC 9728 anchor them at /.well-known/*, and a client that cannot
     # find them there never learns where the authorization server is. Deployments
     # route the /.well-known prefix to this service alongside /api.
-    app.include_router(well_known_routes.router)
+    app.include_router(well_known_routes.router, tags=["well-known"])
 
 # MCP endpoint at /mcp, /mcp/, /api/mcp, /api/mcp/. Registered with add_route rather
 # than mount: mount 307s a bare /mcp to /mcp/ and several MCP clients drop the POST
@@ -221,6 +271,6 @@ if settings.MCP_ENABLED:
 # ever describe -- or call -- the MCP endpoint itself.
 register_mcp(app)
 
-@app.get("/api/health")
+@app.get("/api/health", tags=["health"])
 def health():
     return {"status": "ok"}
