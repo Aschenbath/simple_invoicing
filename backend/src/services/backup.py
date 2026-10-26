@@ -317,17 +317,17 @@ def _prepare_uploaded_backup(upload: UploadFile) -> _PreparedBackup:
 
 
 def _probe_dump(dump_path: Path) -> None:
-    print(f"[restore-debug] probing dump start: {dump_path}")
+    logger.debug(f"probing dump start: {dump_path}")
     command = ["pg_restore", "--list", str(dump_path)]
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)
-        print("[restore-debug] probing dump success")
+        logger.debug("probing dump success")
     except FileNotFoundError as err:
-        print("[restore-debug] probing dump failed: pg_restore not found")
+        logger.error("probing dump failed: pg_restore not found")
         raise HTTPException(status_code=500, detail="pg_restore is not available on the server") from err
     except subprocess.CalledProcessError as err:
         detail = (err.stderr or err.stdout or "pg_restore failed").strip()
-        print(f"[restore-debug] probing dump failed: {detail}")
+        logger.error(f"probing dump failed: {detail}")
         raise HTTPException(status_code=400, detail=f"Backup file is not restorable: {detail}") from err
 
 
@@ -369,7 +369,7 @@ def preflight_restore(upload: UploadFile) -> RestorePreflight:
 
 def _apply_pending_migrations() -> int:
     if not MIGRATIONS_DIR.exists():
-        print("[restore-debug] no migrations directory, skipping pending migrations")
+        logger.debug("no migrations directory, skipping pending migrations")
         return 0
 
     with engine.begin() as conn:
@@ -407,14 +407,14 @@ def _apply_pending_migrations() -> int:
                 {"name": migration_file.stem},
             )
             applied_count += 1
-            print(f"[restore-debug] applied migration after restore: {migration_file.stem}")
+            logger.debug(f"applied migration after restore: {migration_file.stem}")
 
-        print(f"[restore-debug] pending migrations applied count: {applied_count}")
+        logger.debug(f"pending migrations applied count: {applied_count}")
     return applied_count
 
 
 def _terminate_other_db_sessions(env: dict[str, str]) -> None:
-    print("[restore-debug] terminating other DB sessions before restore")
+    logger.debug("terminating other DB sessions before restore")
     terminate_sql = (
         "SELECT pg_terminate_backend(pid) "
         "FROM pg_stat_activity "
@@ -429,27 +429,27 @@ def _terminate_other_db_sessions(env: dict[str, str]) -> None:
     ]
     try:
         subprocess.run(cmd, check=True, capture_output=True, text=True, env=env)
-        print("[restore-debug] terminate sessions success")
+        logger.debug("terminate sessions success")
     except FileNotFoundError as err:
-        print("[restore-debug] terminate sessions failed: psql not found")
+        logger.error("terminate sessions failed: psql not found")
         raise HTTPException(status_code=500, detail="psql is not available on the server") from err
     except subprocess.CalledProcessError as err:
         detail = (err.stderr or err.stdout or "failed to terminate active DB sessions").strip()
-        print(f"[restore-debug] terminate sessions failed: {detail}")
+        logger.error(f"terminate sessions failed: {detail}")
         raise HTTPException(status_code=500, detail=f"Restore failed: {detail}") from err
 
 
 def restore_backup(upload: UploadFile) -> tuple[str, int]:
-    print(f"[restore-debug] restore start: filename={upload.filename}")
+    logger.debug(f"restore start: filename={upload.filename}")
     prepared = _prepare_uploaded_backup(upload)
     try:
-        print(f"[restore-debug] backup prepared: dump={prepared.dump_path}")
+        logger.debug(f"backup prepared: dump={prepared.dump_path}")
         _probe_dump(prepared.dump_path)
 
         current = get_applied_migrations()
-        print(f"[restore-debug] current migration count before restore: {len(current)}")
+        logger.debug(f"current migration count before restore: {len(current)}")
         compatibility, reason, _ = _classify_compatibility(prepared.manifest.migration_names, current)
-        print(f"[restore-debug] compatibility={compatibility}, reason={reason}")
+        logger.debug(f"compatibility={compatibility}, reason={reason}")
         if compatibility in {"newer_than_app", "diverged"}:
             raise HTTPException(status_code=400, detail=reason or "Backup is not compatible with current app")
 
@@ -459,7 +459,7 @@ def restore_backup(upload: UploadFile) -> tuple[str, int]:
             env["PGPASSWORD"] = str(parts["password"])
 
         # Ensure app-side pooled connections don't hold stale state.
-        print("[restore-debug] disposing SQLAlchemy engine before restore")
+        logger.debug("disposing SQLAlchemy engine before restore")
         engine.dispose()
         _terminate_other_db_sessions(env)
         engine.dispose()
@@ -482,13 +482,13 @@ def restore_backup(upload: UploadFile) -> tuple[str, int]:
             extracted = subprocess.run(
                 extract_cmd, check=True, capture_output=True, text=True, env=env
             )
-            print(f"[restore-debug] extracted SQL bytes={len(extracted.stdout.encode('utf-8'))}")
+            logger.debug(f"extracted SQL bytes={len(extracted.stdout.encode('utf-8'))}")
         except FileNotFoundError as err:
-            print("[restore-debug] extract failed: pg_restore not found")
+            logger.error("extract failed: pg_restore not found")
             raise HTTPException(status_code=500, detail="pg_restore is not available on the server") from err
         except subprocess.CalledProcessError as err:
             detail = (err.stderr or err.stdout or "pg_restore failed").strip()
-            print(f"[restore-debug] extract failed: {detail}")
+            logger.error(f"extract failed: {detail}")
             raise HTTPException(status_code=500, detail=f"Restore failed: {detail}") from err
 
         # Step 2: filter out session-level SET commands that the target server may
@@ -499,7 +499,7 @@ def restore_backup(upload: UploadFile) -> tuple[str, int]:
             if not any(line.strip().startswith(p) for p in _UNSUPPORTED_SET_PREFIXES)
         ]
         filtered_sql = "\n".join(filtered_lines)
-        print(f"[restore-debug] filtered SQL lines={len(filtered_lines)}")
+        logger.debug(f"filtered SQL lines={len(filtered_lines)}")
 
         # Step 3: apply via psql in a single transaction; ON_ERROR_STOP=1 rolls
         # back and surfaces the first error (equivalent to --exit-on-error).
@@ -518,25 +518,25 @@ def restore_backup(upload: UploadFile) -> tuple[str, int]:
                 text=True,
                 env=env,
             )
-            print("[restore-debug] psql restore apply success")
+            logger.debug("psql restore apply success")
         except FileNotFoundError as err:
-            print("[restore-debug] restore apply failed: psql not found")
+            logger.error("restore apply failed: psql not found")
             raise HTTPException(status_code=500, detail="psql is not available on the server") from err
         except subprocess.CalledProcessError as err:
             detail = (err.stderr or err.stdout or "psql restore failed").strip()
-            print(f"[restore-debug] restore apply failed: {detail}")
+            logger.error(f"restore apply failed: {detail}")
             raise HTTPException(status_code=500, detail=f"Restore failed: {detail}") from err
 
         # Discard all pooled connections — they point to the pre-restore state.
         # SQLAlchemy will open fresh connections on the next request.
-        print("[restore-debug] disposing SQLAlchemy engine after restore")
+        logger.debug("disposing SQLAlchemy engine after restore")
         engine.dispose()
 
         applied_count = _apply_pending_migrations()
-        print(f"[restore-debug] restore completed: compatibility={compatibility}, applied_migrations={applied_count}")
+        logger.debug(f"restore completed: compatibility={compatibility}, applied_migrations={applied_count}")
         return compatibility, applied_count
     finally:
-        print("[restore-debug] cleanup temp dir and dispose engine")
+        logger.debug("cleanup temp dir and dispose engine")
         prepared.temp_dir.cleanup()
         # On both success and failure, force pool reset so new requests reconnect cleanly.
         engine.dispose()
