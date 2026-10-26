@@ -3,6 +3,7 @@ import api, { getApiErrorMessage } from '../api/client';
 import StatusToasts from '../components/StatusToasts';
 import ScopeBar, { Metric } from '../components/ScopeBar';
 import DateRangePresets from '../components/DateRangePresets';
+import LoadingState from '../components/LoadingState';
 import type { CompanyProfile, DayBook, DayBookEntry } from '../types/api';
 import formatCurrency, { formatDate } from '../utils/formatting';
 import { toIsoDate } from '../utils/dateRanges';
@@ -267,7 +268,7 @@ export default function DayBookPage() {
             ) : null}
           </div>
 
-          {loading ? <div className="empty-state">Loading vouchers...</div> : null}
+          {loading ? <LoadingState message="Loading vouchers..." /> : null}
 
           {!loading && entries.length === 0 ? (
             <div className="empty-state">

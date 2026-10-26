@@ -22,6 +22,7 @@ import type { CompanyProfile, Ledger, PaginatedLedgers } from '../types/api';
 import formatCurrency from '../utils/formatting';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EmptyState from '../components/EmptyState';
+import LoadingState from '../components/LoadingState';
 
 /** Monogram for the row avatar — first letters of the first two words. */
 function ledgerInitials(name: string): string {
@@ -227,9 +228,7 @@ export default function LedgersPage() {
             {/* Standardized empty states for loading, empty registry, and search results */}
             {loading ? (
               <>
-                <p className="sr-only" role="status">
-                  Loading ledgers...
-                </p>
+                <LoadingState message="Loading ledgers..." />
                 {/* Skeleton rows keep the list's shape while it loads, so the panel
                     does not collapse and snap back once the data lands. */}
                 <div className="ledger-skeletons" aria-hidden="true">

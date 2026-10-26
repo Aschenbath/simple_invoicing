@@ -5,6 +5,7 @@ import api, { getApiErrorMessage, getBlobErrorMessage } from '../api/client';
 import StatusToasts from '../components/StatusToasts';
 import ScopeBar from '../components/ScopeBar';
 import DateRangePresets from '../components/DateRangePresets';
+import LoadingState from '../components/LoadingState';
 import { useFY } from '../context/FYContext';
 import type {
   CompanyProfile,
@@ -183,7 +184,7 @@ export default function TaxLedgerPage() {
         </div>
 
         {loading ? (
-          <div className="empty-state">Loading tax ledger...</div>
+          <LoadingState message="Loading tax ledger..." />
         ) : null}
         {!loading && (!taxLedger || taxLedger.entries.length === 0) ? (
           <div className="empty-state">No tax entries found for this filter.</div>

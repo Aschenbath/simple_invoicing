@@ -7,6 +7,7 @@ import CreditNotePreview from '../components/CreditNotePreview';
 import LedgerCombobox from '../components/LedgerCombobox';
 import StatusToasts from '../components/StatusToasts';
 import EmptyState from '../components/EmptyState';
+import LoadingState from '../components/LoadingState';
 import { invoiceCreditStatusMeta } from '../common/invoiceCreditStatus';
 import type {
   CompanyProfile,
@@ -535,7 +536,7 @@ export default function CreditNotesPage() {
             </div>
           </div>
 
-          {loadingBootstrap ? <EmptyState message="Loading ledgers, invoices, and products..." /> : null}
+          {loadingBootstrap ? <LoadingState message="Loading ledgers, invoices, and products..." /> : null}
 
           {!loadingBootstrap ? (
             <form className="stack" onSubmit={handleSubmit}>
@@ -893,7 +894,7 @@ export default function CreditNotesPage() {
             </button>
           </div>
 
-          {loadingCreditNotes ? <EmptyState message="Loading credit notes..." /> : null}
+          {loadingCreditNotes ? <LoadingState message="Loading credit notes..." /> : null}
           {!loadingCreditNotes && creditNotes.length === 0 ? <EmptyState message="No credit notes match the current filters." /> : null}
 
           <div className="stack" style={{ gap: '12px' }}>

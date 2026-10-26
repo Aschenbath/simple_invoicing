@@ -11,6 +11,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import formatCurrency from '../utils/formatting';
 import { formatInvoiceDateLabel } from '../utils/invoiceDueDate.ts';
 import EmptyState from '../components/EmptyState';
+import LoadingState from '../components/LoadingState';
 
 type DueFilterMode = 'all' | 'overdue' | 'next7' | 'next15' | 'custom-days' | 'exact-date';
 
@@ -363,7 +364,7 @@ export default function InvoiceDuesPage() {
 
           <div className="invoice-list">
             {loading ? (
-              <EmptyState message="Loading due invoices..." />
+              <LoadingState message="Loading due invoices..." />
             ) : items.length === 0 ? (
               <EmptyState message="No invoices match your due filters. Try adjusting the due window or search." />
             ) : null}

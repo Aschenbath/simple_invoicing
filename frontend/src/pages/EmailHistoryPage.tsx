@@ -7,6 +7,7 @@ import StatusToasts from '../components/StatusToasts';
 import ScopeBar, { Metric } from '../components/ScopeBar';
 import DateRangePresets from '../components/DateRangePresets';
 import EmptyState from '../components/EmptyState';
+import LoadingState from '../components/LoadingState';
 import { formatDateTime } from '../utils/formatting';
 
 const PAGE_SIZE = 20;
@@ -153,7 +154,7 @@ export default function EmailHistoryPage() {
           </div>
 
           <div className="invoice-list">
-            {isLoading && <EmptyState message="Loading emails..." />}
+            {isLoading && <LoadingState message="Loading emails..." />}
             {!isLoading && (!data || data.items.length === 0) && (
               <EmptyState message="No emails found for the selected filters." />
             )}

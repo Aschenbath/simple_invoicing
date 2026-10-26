@@ -5,6 +5,7 @@ import api, { getApiErrorMessage } from '../api/client';
 import StatusToasts from '../components/StatusToasts';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EmptyState from '../components/EmptyState';
+import LoadingState from '../components/LoadingState';
 import Pagination from '../components/Pagination';
 import Tabs from '../components/Tabs';
 import BOMConfigModal from '../components/BOMConfigModal';
@@ -518,9 +519,7 @@ export default function CataloguePage() {
           </div>
 
           {loading ? (
-            <p className="sr-only" role="status">
-              Loading the catalogue...
-            </p>
+            <LoadingState message="Loading the catalogue..." />
           ) : null}
 
           {!loading && loadFailed ? (
