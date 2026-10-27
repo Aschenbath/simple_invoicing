@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, Mail, Printer, Share2 } from 'lucide-react';
+import { Check, Copy, Download, Mail, Printer, Share2 } from 'lucide-react';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import api, { getApiErrorMessage } from '../api/client';
 import type { Invoice } from '../types/api';
 import { formatInvoiceDateLabel } from '../utils/invoiceDueDate.ts';
+import { copyTextToClipboard } from '../utils/clipboard';
 import formatCurrency from '../utils/formatting';
 import SendEmailModal from './SendEmailModal';
 import ShareModal from './ShareModal';
@@ -25,7 +26,19 @@ export default function InvoicePreview({ invoice, onClose, onError }: InvoicePre
   const [loadingPdf, setLoadingPdf] = useState(true);
   const [pdfError, setPdfError] = useState('');
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<'idle' | 'copied' | 'error'>('idle');
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const copyFeedbackTimer = useRef<number | null>(null);
+  const copyAttempt = useRef(0);
+  const invoiceLabel = invoice.invoice_number || `#${invoice.id}`;
+
+  useEffect(() => {
+    setCopyFeedback('idle');
+    return () => {
+      copyAttempt.current += 1;
+      if (copyFeedbackTimer.current !== null) window.clearTimeout(copyFeedbackTimer.current);
+    };
+  }, [invoiceLabel]);
 
   // The email and share modals stacked on top close themselves on Escape;
   // without this guard the same keypress tears down the preview behind them.
@@ -108,7 +121,17 @@ export default function InvoicePreview({ invoice, onClose, onError }: InvoicePre
     window.open(pdfUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const invoiceLabel = invoice.invoice_number || `#${invoice.id}`;
+  const handleCopyInvoiceNumber = async () => {
+    const attempt = ++copyAttempt.current;
+    const copied = await copyTextToClipboard(invoiceLabel);
+    if (attempt !== copyAttempt.current) return;
+
+    setCopyFeedback(copied ? 'copied' : 'error');
+    if (copyFeedbackTimer.current !== null) window.clearTimeout(copyFeedbackTimer.current);
+    copyFeedbackTimer.current = window.setTimeout(() => {
+      if (attempt === copyAttempt.current) setCopyFeedback('idle');
+    }, 2000);
+  };
   // The backend reads voucher_type off the invoice, so one share button covers
   // both books — only the wording the customer reads has to change.
   const documentNoun = invoice.voucher_type === 'purchase' ? 'Purchase invoice' : 'Invoice';
@@ -120,6 +143,22 @@ export default function InvoicePreview({ invoice, onClose, onError }: InvoicePre
           eyebrow="Invoice preview"
           titleId="invoice-preview-title"
           title={`${documentNoun} ${invoice.invoice_number || `#${invoice.id}`}`}
+          titleAdornment={
+            <span className="invoice-number-copy">
+              <button
+                type="button"
+                className="invoice-number-copy__button"
+                onClick={() => void handleCopyInvoiceNumber()}
+                title="Copy invoice number"
+                aria-label="Copy invoice number"
+              >
+                {copyFeedback === 'copied' ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+              </button>
+              <span className="invoice-number-copy__feedback" role="status" aria-live="polite">
+                {copyFeedback === 'copied' ? 'Copied' : copyFeedback === 'error' ? 'Unable to copy' : ''}
+              </span>
+            </span>
+          }
           meta={
             <>
               {formatInvoiceDateLabel(invoice.invoice_date)}

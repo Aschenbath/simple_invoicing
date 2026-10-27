@@ -19,6 +19,8 @@ type PreviewToolbarProps = {
   eyebrow: string;
   title: string;
   titleId: string;
+  /** Optional control displayed immediately beside the document title. */
+  titleAdornment?: ReactNode;
   meta?: ReactNode;
   /** The one filled button. Everything else is quiet on purpose. */
   primary: PreviewAction;
@@ -60,6 +62,7 @@ export default function PreviewToolbar({
   eyebrow,
   title,
   titleId,
+  titleAdornment,
   meta,
   primary,
   secondary = [],
@@ -94,7 +97,14 @@ export default function PreviewToolbar({
     <div className="panel__header preview-header no-print">
       <div className="preview-header__title">
         <p className="eyebrow">{eyebrow}</p>
-        <h2 id={titleId} className="nav-panel__title">{title}</h2>
+        {titleAdornment ? (
+          <div className="preview-header__heading-row">
+            <h2 id={titleId} className="nav-panel__title">{title}</h2>
+            {titleAdornment}
+          </div>
+        ) : (
+          <h2 id={titleId} className="nav-panel__title">{title}</h2>
+        )}
         {meta ? <p className="muted-text preview-header__meta">{meta}</p> : null}
       </div>
 
