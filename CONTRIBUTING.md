@@ -105,11 +105,42 @@ npm run test:e2e
 ```
 
 ### Backend tests
-If backend tests are available in your branch:
+API tests and the full suite require PostgreSQL. The shared `tests/conftest.py`
+imports `app_main.py`, which connects to the configured database and applies
+pending migrations during import.
+
+From the repository root, start only the database service using the checked-in
+development credentials:
+```bash
+docker compose --env-file .env.example up -d db
+```
+
+In a second terminal, install the backend dependencies and pytest, then run tests
+from `backend/`. The matching database URL is
+`postgresql://simple_user:simple_password@localhost:5432/simple_invoicing`.
+Set it and a test secret before running the full suite, one file, or one test:
 ```bash
 cd backend
-pytest
+python -m pip install -r requirements.txt pytest
+export DATABASE_URL="postgresql://simple_user:simple_password@localhost:5432/simple_invoicing"
+export SECRET_KEY="testing-secret-key"
+python -m pytest tests/ -v
+python -m pytest tests/api/test_products.py -v
+python -m pytest tests/api/test_products.py::test_get_products -v
 ```
+
+The tests under `tests/core` do not use PostgreSQL. A few service unit-test
+files are similarly independent, including `test_marketplace_client.py`,
+`test_series_format_number.py`, and `test_upi.py`. To run these without loading
+the database-dependent `tests/conftest.py`, use `--confcutdir` and provide the
+settings values those modules import:
+```bash
+DATABASE_URL=sqlite:// SECRET_KEY=testing-secret-key python -m pytest --confcutdir=tests/core tests/core
+DATABASE_URL=sqlite:// SECRET_KEY=testing-secret-key python -m pytest --confcutdir=tests/services tests/services/test_marketplace_client.py tests/services/test_series_format_number.py tests/services/test_upi.py
+```
+
+Backend CI starts PostgreSQL 16 and runs the full suite with
+`python -m pytest tests/ -v`.
 
 ### Lint/type checks
 ```bash
