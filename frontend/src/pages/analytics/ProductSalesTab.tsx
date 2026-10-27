@@ -126,15 +126,15 @@ export default function ProductSalesTab({ filters }: { filters: AnalyticsFilters
             <table className="invoice-feed-table">
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th>Item Code</th>
-                  <th className="text-right">Qty Sold</th>
-                  <th className="text-right">Sales Amount</th>
-                  <th className="text-right">Avg Selling Price</th>
-                  <th className="text-right">Total Revenue</th>
-                  <th className="text-right">Total GST</th>
-                  <th className="text-right">Invoices</th>
-                  <th className="text-right">Current Stock</th>
+                  <th scope="col">Product</th>
+                  <th scope="col">Item Code</th>
+                  <th scope="col" className="text-right">Qty Sold</th>
+                  <th scope="col" className="text-right">Sales Amount</th>
+                  <th scope="col" className="text-right">Avg Selling Price</th>
+                  <th scope="col" className="text-right">Total Revenue</th>
+                  <th scope="col" className="text-right">Total GST</th>
+                  <th scope="col" className="text-right">Invoices</th>
+                  <th scope="col" className="text-right">Current Stock</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,15 +155,15 @@ export default function ProductSalesTab({ filters }: { filters: AnalyticsFilters
               </tbody>
               <tfoot>
                 <tr>
-                  <th>Totals</th>
-                  <th>{totals.product_count} products</th>
-                  <th className="text-right">{totals.quantity_sold}</th>
-                  <th className="text-right">{formatCurrency(totals.sales_amount, currency)}</th>
-                  <th className="text-right">—</th>
-                  <th className="text-right">{formatCurrency(totals.total_revenue, currency)}</th>
-                  <th className="text-right">{formatCurrency(totals.total_gst, currency)}</th>
-                  <th className="text-right">{totals.invoice_count}</th>
-                  <th className="text-right">—</th>
+                  <th scope="row">Totals</th>
+                  <th scope="col">{totals.product_count} products</th>
+                  <th scope="col" className="text-right">{totals.quantity_sold}</th>
+                  <th scope="col" className="text-right">{formatCurrency(totals.sales_amount, currency)}</th>
+                  <th scope="col" className="text-right">—</th>
+                  <th scope="col" className="text-right">{formatCurrency(totals.total_revenue, currency)}</th>
+                  <th scope="col" className="text-right">{formatCurrency(totals.total_gst, currency)}</th>
+                  <th scope="col" className="text-right">{totals.invoice_count}</th>
+                  <th scope="col" className="text-right">—</th>
                 </tr>
               </tfoot>
             </table>

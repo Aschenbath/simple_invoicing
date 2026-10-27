@@ -69,13 +69,13 @@ export default function MonthlySalesTab({ filters }: { filters: AnalyticsFilters
             <table className="invoice-feed-table">
               <thead>
                 <tr>
-                  <th>Month</th>
-                  <th className="text-right">Invoices</th>
-                  <th className="text-right">Total Sales</th>
-                  <th className="text-right">Taxable Value</th>
-                  <th className="text-right">GST Collected</th>
-                  <th className="text-right">Discount Given</th>
-                  <th className="text-right">Avg Invoice Value</th>
+                  <th scope="col">Month</th>
+                  <th scope="col" className="text-right">Invoices</th>
+                  <th scope="col" className="text-right">Total Sales</th>
+                  <th scope="col" className="text-right">Taxable Value</th>
+                  <th scope="col" className="text-right">GST Collected</th>
+                  <th scope="col" className="text-right">Discount Given</th>
+                  <th scope="col" className="text-right">Avg Invoice Value</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,13 +93,13 @@ export default function MonthlySalesTab({ filters }: { filters: AnalyticsFilters
               </tbody>
               <tfoot>
                 <tr>
-                  <th>Totals</th>
-                  <th className="text-right">{totals.invoice_count}</th>
-                  <th className="text-right">{formatCurrency(totals.total_sales, currency)}</th>
-                  <th className="text-right">{formatCurrency(totals.taxable_value, currency)}</th>
-                  <th className="text-right">{formatCurrency(totals.gst_collected, currency)}</th>
-                  <th className="text-right">{formatCurrency(totals.discount_given, currency)}</th>
-                  <th className="text-right">{formatCurrency(totals.average_invoice_value, currency)}</th>
+                  <th scope="row">Totals</th>
+                  <th scope="col" className="text-right">{totals.invoice_count}</th>
+                  <th scope="col" className="text-right">{formatCurrency(totals.total_sales, currency)}</th>
+                  <th scope="col" className="text-right">{formatCurrency(totals.taxable_value, currency)}</th>
+                  <th scope="col" className="text-right">{formatCurrency(totals.gst_collected, currency)}</th>
+                  <th scope="col" className="text-right">{formatCurrency(totals.discount_given, currency)}</th>
+                  <th scope="col" className="text-right">{formatCurrency(totals.average_invoice_value, currency)}</th>
                 </tr>
               </tfoot>
             </table>

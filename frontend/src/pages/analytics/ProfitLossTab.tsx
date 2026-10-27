@@ -134,12 +134,12 @@ export default function ProfitLossTab({ filters }: { filters: AnalyticsFilters }
             <table className="invoice-feed-table">
               <thead>
                 <tr>
-                  <th>Month</th>
-                  <th className="text-right">Qty Sold</th>
-                  <th className="text-right">Revenue</th>
-                  <th className="text-right">COGS</th>
-                  <th className="text-right">Gross Profit</th>
-                  <th className="text-right">Margin</th>
+                  <th scope="col">Month</th>
+                  <th scope="col" className="text-right">Qty Sold</th>
+                  <th scope="col" className="text-right">Revenue</th>
+                  <th scope="col" className="text-right">COGS</th>
+                  <th scope="col" className="text-right">Gross Profit</th>
+                  <th scope="col" className="text-right">Margin</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,14 +201,14 @@ export default function ProfitLossTab({ filters }: { filters: AnalyticsFilters }
                 <table className="invoice-feed-table">
                   <thead>
                     <tr>
-                      <th>Product</th>
-                      <th className="text-right">Qty Sold</th>
-                      <th className="text-right">Avg Selling Price</th>
-                      <th className="text-right">Purchase Price</th>
-                      <th className="text-right">Revenue</th>
-                      <th className="text-right">COGS</th>
-                      <th className="text-right">Gross Profit</th>
-                      <th className="text-right">Margin</th>
+                      <th scope="col">Product</th>
+                      <th scope="col" className="text-right">Qty Sold</th>
+                      <th scope="col" className="text-right">Avg Selling Price</th>
+                      <th scope="col" className="text-right">Purchase Price</th>
+                      <th scope="col" className="text-right">Revenue</th>
+                      <th scope="col" className="text-right">COGS</th>
+                      <th scope="col" className="text-right">Gross Profit</th>
+                      <th scope="col" className="text-right">Margin</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -236,14 +236,14 @@ export default function ProfitLossTab({ filters }: { filters: AnalyticsFilters }
                   </tbody>
                   <tfoot>
                     <tr>
-                      <th>{totals.product_count} products</th>
-                      <th className="text-right">{totals.quantity_sold}</th>
-                      <th className="text-right">—</th>
-                      <th className="text-right">—</th>
-                      <th className="text-right">{formatCurrency(totals.revenue, currency)}</th>
-                      <th className="text-right">{formatCurrency(totals.cogs, currency)}</th>
-                      <th className="text-right">{formatCurrency(totals.gross_profit, currency)}</th>
-                      <th className="text-right">{formatPct(totals.margin_pct)}</th>
+                      <th scope="row">{totals.product_count} products</th>
+                      <th scope="col" className="text-right">{totals.quantity_sold}</th>
+                      <th scope="col" className="text-right">—</th>
+                      <th scope="col" className="text-right">—</th>
+                      <th scope="col" className="text-right">{formatCurrency(totals.revenue, currency)}</th>
+                      <th scope="col" className="text-right">{formatCurrency(totals.cogs, currency)}</th>
+                      <th scope="col" className="text-right">{formatCurrency(totals.gross_profit, currency)}</th>
+                      <th scope="col" className="text-right">{formatPct(totals.margin_pct)}</th>
                     </tr>
                   </tfoot>
                 </table>
@@ -254,12 +254,12 @@ export default function ProfitLossTab({ filters }: { filters: AnalyticsFilters }
               <table className="invoice-feed-table">
                 <thead>
                   <tr>
-                    <th>Customer</th>
-                    <th className="text-right">Invoices</th>
-                    <th className="text-right">Revenue</th>
-                    <th className="text-right">COGS</th>
-                    <th className="text-right">Gross Profit</th>
-                    <th className="text-right">Margin</th>
+                    <th scope="col">Customer</th>
+                    <th scope="col" className="text-right">Invoices</th>
+                    <th scope="col" className="text-right">Revenue</th>
+                    <th scope="col" className="text-right">COGS</th>
+                    <th scope="col" className="text-right">Gross Profit</th>
+                    <th scope="col" className="text-right">Margin</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -278,12 +278,12 @@ export default function ProfitLossTab({ filters }: { filters: AnalyticsFilters }
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th>Totals</th>
-                    <th className="text-right">—</th>
-                    <th className="text-right">{formatCurrency(totals.revenue, currency)}</th>
-                    <th className="text-right">{formatCurrency(totals.cogs, currency)}</th>
-                    <th className="text-right">{formatCurrency(totals.gross_profit, currency)}</th>
-                    <th className="text-right">{formatPct(totals.margin_pct)}</th>
+                    <th scope="row">Totals</th>
+                    <th scope="col" className="text-right">—</th>
+                    <th scope="col" className="text-right">{formatCurrency(totals.revenue, currency)}</th>
+                    <th scope="col" className="text-right">{formatCurrency(totals.cogs, currency)}</th>
+                    <th scope="col" className="text-right">{formatCurrency(totals.gross_profit, currency)}</th>
+                    <th scope="col" className="text-right">{formatPct(totals.margin_pct)}</th>
                   </tr>
                 </tfoot>
               </table>
