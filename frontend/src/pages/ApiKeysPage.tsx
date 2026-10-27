@@ -7,6 +7,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import ModalCloseButton from '../components/ModalCloseButton';
 import { formatDate } from '../utils/formatting';
+import { copyTextToClipboard } from '../utils/clipboard';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -148,11 +149,11 @@ function RevealModal({ rawKey, name, onClose }: RevealModalProps) {
   const [copied, setCopied] = useState(false);
   useEscapeClose(onClose);
 
-  function copyKey() {
-    navigator.clipboard.writeText(rawKey).then(() => {
+  async function copyKey() {
+    if (await copyTextToClipboard(rawKey)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }
   }
 
   return (

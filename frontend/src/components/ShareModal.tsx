@@ -8,6 +8,7 @@ import { getApiErrorMessage } from '../api/client';
 import { ensureShareLink, revokeShareLink } from '../features/share/api';
 import { shareQueryKeys } from '../features/share/queryKeys';
 import type { ShareResourceType } from '../types/api';
+import { copyTextToClipboard } from '../utils/clipboard';
 import { buildWhatsAppUrl, toWhatsAppNumber } from '../utils/phone';
 
 type ShareModalProps = {
@@ -65,28 +66,6 @@ function describeViews(viewCount: number, lastViewedAt: string | null): string {
 
   const opened = viewCount === 1 ? 'Opened once' : `Opened ${viewCount} times`;
   return lastViewedAt ? `${opened} · last ${formatRelativeTime(lastViewedAt)}` : opened;
-}
-
-/**
- * Copies without the async clipboard API, which needs a secure context: an
- * instance reached over plain http on the shop LAN has no `navigator.clipboard`
- * at all, and the copy button is the whole point of this dialog.
- */
-function copyViaSelection(text: string): boolean {
-  const field = document.createElement('textarea');
-  field.value = text;
-  field.setAttribute('readonly', '');
-  field.style.position = 'fixed';
-  field.style.opacity = '0';
-  document.body.appendChild(field);
-  field.select();
-  try {
-    return document.execCommand('copy');
-  } catch {
-    return false;
-  } finally {
-    document.body.removeChild(field);
-  }
 }
 
 export default function ShareModal({
@@ -155,18 +134,7 @@ export default function ShareModal({
     if (!link) return;
     setCopyError('');
 
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(link.url);
-        setCopied(true);
-        return;
-      }
-    } catch {
-      // Permission denied or an insecure context — fall through to the
-      // selection-based copy rather than leaving the user with nothing.
-    }
-
-    if (copyViaSelection(link.url)) {
+    if (await copyTextToClipboard(link.url)) {
       setCopied(true);
     } else {
       setCopyError('Could not copy automatically — select the link and copy it.');
