@@ -100,6 +100,7 @@ export const PRIMARY_NAV: NavEntry[] = [
     title: 'Dashboard',
     icon: LayoutDashboard,
     end: true,
+    shortcutAction: 'go_dashboard',
   },
   {
     kind: 'section',
@@ -117,10 +118,10 @@ export const PRIMARY_NAV: NavEntry[] = [
         title: 'Advanced Invoice View',
         icon: LayoutList,
       },
-      { to: '/invoice-dues', label: 'Invoice Dues', icon: AlarmClock },
+      { to: '/invoice-dues', label: 'Invoice Dues', icon: AlarmClock, shortcutAction: 'go_invoice_dues' },
       // One page, both directions — the same shape as Invoices, which hosts
       // purchases behind its own voucher toggle.
-      { to: '/credit-notes', label: 'Credit / Debit Notes', title: 'Credit Notes', icon: FileMinus2 },
+      { to: '/credit-notes', label: 'Credit / Debit Notes', title: 'Credit Notes', icon: FileMinus2, shortcutAction: 'go_credit_notes' },
       {
         to: '/cash-bank',
         label: 'Cash & Bank',
@@ -154,7 +155,7 @@ export const PRIMARY_NAV: NavEntry[] = [
       // Was the second tab of /tax-ledger. A three-step filing wizard is a
       // destination, not a view of the ledger beside it — and buried in a tab
       // it was unreachable from the rail, unlinkable, and lost on reload.
-      { to: '/gstr1', label: 'GSTR-1 Filing', icon: FileCheck2 },
+      { to: '/gstr1', label: 'GSTR-1 Filing', icon: FileCheck2, shortcutAction: 'go_gstr1' },
     ],
   },
   {

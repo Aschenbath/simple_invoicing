@@ -293,6 +293,15 @@ describe('LEGACY_REDIRECTS', () => {
 });
 
 describe('NAV_SHORTCUTS', () => {
+  it.each([
+    ['go_invoice_dues', '/invoice-dues'],
+    ['go_credit_notes', '/credit-notes'],
+    ['go_gstr1', '/gstr1'],
+    ['go_dashboard', '/'],
+  ])('routes %s to %s', (action, to) => {
+    expect(NAV_SHORTCUTS).toContainEqual({ action, to });
+  });
+
   it('only uses action keys the shortcut system knows about', () => {
     // TypeScript enforces this too, but the backend keeps its own DEFAULTS dict
     // and rejects unknown keys with a 400 — so adding a nav shortcut means
