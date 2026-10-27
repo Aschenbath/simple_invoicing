@@ -91,6 +91,14 @@ describe('toWhatsAppNumber — anything uncertain is null, never a guess', () =>
 });
 
 describe('buildWhatsAppUrl', () => {
+  test('opens a number directly when no prefilled message is needed', () => {
+    expect(buildWhatsAppUrl(toWhatsAppNumber('(98765) 43210'), '')).toBe('https://wa.me/919876543210');
+  });
+
+  test('uses the contact picker for uncertain numbers without a message', () => {
+    expect(buildWhatsAppUrl(toWhatsAppNumber('12345'), '')).toBe('https://wa.me/');
+  });
+
   test('addresses the number when there is one', () => {
     expect(buildWhatsAppUrl('919876543210', 'Invoice INV-1\nhttps://x.test/s/abc')).toBe(
       'https://wa.me/919876543210?text=Invoice%20INV-1%0Ahttps%3A%2F%2Fx.test%2Fs%2Fabc',

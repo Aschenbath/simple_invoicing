@@ -65,6 +65,6 @@ export function toWhatsAppNumber(
  * not a degraded one.
  */
 export function buildWhatsAppUrl(number: string | null, message: string): string {
-  const text = encodeURIComponent(message);
-  return number ? `https://wa.me/${number}?text=${text}` : `https://wa.me/?text=${text}`;
+  const baseUrl = number ? `https://wa.me/${number}` : 'https://wa.me/';
+  return message ? `${baseUrl}?text=${encodeURIComponent(message)}` : baseUrl;
 }

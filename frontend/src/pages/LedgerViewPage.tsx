@@ -19,6 +19,7 @@ import { useEscapeClose } from '../hooks/useEscapeClose';
 import { fetchOutstandingInvoices, fetchLedgerAddresses, createLedgerAddress, updateLedgerAddress, deleteLedgerAddress } from '../features/invoices/api';
 import { formatInvoiceDateLabel } from '../utils/invoiceDueDate.ts';
 import EmptyState from '../components/EmptyState';
+import LedgerPhoneLinks from '../components/LedgerPhoneLinks';
 
 function defaultDateRange() {
   const today = new Date();
@@ -631,7 +632,9 @@ export default function LedgerViewPage() {
           <p className="eyebrow">Ledger statement</p>
           <h1 className="page-title">{ledger.name}</h1>
           <p className="section-copy">
-            {[ledger.gst ? `GST: ${ledger.gst}` : '', ledger.phone_number].filter(Boolean).join(' · ')}
+            {ledger.gst ? `GST: ${ledger.gst}` : null}
+            {ledger.gst && ledger.phone_number?.trim() ? ' · ' : null}
+            <LedgerPhoneLinks phone={ledger.phone_number} />
             {ledger.email ? ` · ${ledger.email}` : ''}
           </p>
         </div>
