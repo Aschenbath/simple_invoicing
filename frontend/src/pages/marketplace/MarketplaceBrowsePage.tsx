@@ -338,12 +338,12 @@ export default function MarketplaceBrowsePage() {
                   <table className="marketplace-table">
                     <thead>
                       <tr>
-                        <th>Listing</th>
-                        <th>Seller</th>
-                        <th>Price / unit</th>
-                        <th>GST</th>
-                        <th>Availability</th>
-                        <th aria-label="Actions" />
+                        <th scope="col">Listing</th>
+                        <th scope="col">Seller</th>
+                        <th scope="col">Price / unit</th>
+                        <th scope="col">GST</th>
+                        <th scope="col">Availability</th>
+                        <th scope="col" aria-label="Actions" />
                       </tr>
                     </thead>
                     <tbody>

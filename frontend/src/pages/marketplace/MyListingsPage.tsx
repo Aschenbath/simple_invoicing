@@ -167,11 +167,11 @@ export default function MyListingsPage() {
                 <table className="marketplace-table">
                   <thead>
                     <tr>
-                      <th>Listing</th>
-                      <th>Price / unit</th>
-                      <th>Advertised quantity</th>
-                      <th>Status</th>
-                      <th aria-label="Actions" />
+                      <th scope="col">Listing</th>
+                      <th scope="col">Price / unit</th>
+                      <th scope="col">Advertised quantity</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody>

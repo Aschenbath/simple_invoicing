@@ -195,12 +195,12 @@ export default function MarketplaceOrdersPage() {
                     <table className="marketplace-table">
                       <thead>
                         <tr>
-                          <th>Order</th>
-                          <th>{side === 'sell' ? 'Buyer' : 'Seller'}</th>
-                          <th>Quantity</th>
-                          <th>Total</th>
-                          <th>State</th>
-                          <th aria-label="Actions" />
+                          <th scope="col">Order</th>
+                          <th scope="col">{side === 'sell' ? 'Buyer' : 'Seller'}</th>
+                          <th scope="col">Quantity</th>
+                          <th scope="col">Total</th>
+                          <th scope="col">State</th>
+                          <th scope="col" aria-label="Actions" />
                         </tr>
                       </thead>
                       <tbody>

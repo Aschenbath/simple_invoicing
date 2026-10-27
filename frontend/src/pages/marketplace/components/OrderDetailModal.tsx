@@ -76,11 +76,11 @@ export default function OrderDetailModal({
           <table className="marketplace-table">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Item</th>
-                <th>Quantity</th>
-                <th>Unit price</th>
-                <th>GST</th>
+                <th scope="col">#</th>
+                <th scope="col">Item</th>
+                <th scope="col">Quantity</th>
+                <th scope="col">Unit price</th>
+                <th scope="col">GST</th>
               </tr>
             </thead>
             <tbody>
