@@ -129,7 +129,7 @@ class TestRetries:
         recorder = Recorder(err(503, "boom"))
         client = make_client(recorder, [])
         with pytest.raises(MarketplaceUnavailable):
-            client.register_seller({"gstin": "27ABCDE1234F1Z5"})
+            client.register_seller({"gstin": "27ABCDE1234F1Z0"})
         assert recorder.attempts == 1
 
     def test_post_with_idempotency_key_is_retried(self):

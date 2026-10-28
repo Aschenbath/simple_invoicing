@@ -210,7 +210,7 @@ function AdditionalInfoSection({
         placeholder={`Example:
 ABC Enterprises Pvt. Ltd.
 Authorized Distributor of Industrial Products
-GSTIN: 07ABCDE1234F1Z5
+GSTIN: 07ABCDE1234F1Z2
 Customer Care: +91 XXXXX XXXXX`}
         rows={5}
         style={{ width: '100%', minHeight: '120px', resize: 'vertical' }}
@@ -903,9 +903,9 @@ export default function CompanyPage() {
                     className="input"
                     value={form.gst}
                     onChange={(event) => setForm((current) => ({ ...current, gst: event.target.value }))}
-                    placeholder="27ABCDE1234F1Z5"
+                    placeholder="27ABCDE1234F1Z0"
                   />
-                  <small className="field-hint">Format: 27ABCDE1234F1Z5</small>
+                  <small className="field-hint">Format: 27ABCDE1234F1Z0</small>
                 </div>
 
                 <div className="field">

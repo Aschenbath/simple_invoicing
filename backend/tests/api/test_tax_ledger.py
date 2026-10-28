@@ -45,7 +45,7 @@ def _seed_basics(db_session):
     ledger = Buyer(
         name="Acme Stores",
         address="42 Market Road",
-        gst="29ABCDE1234F1Z5",
+        gst="29ABCDE1234F1ZW",
         phone_number="9999999999",
         email="ledger@example.com",
     )
@@ -166,7 +166,7 @@ def _add_credit_note_item(
     return credit_note
 
 
-def _make_company(name="Test Co", gst="29TESTT1234X1Z5"):
+def _make_company(name="Test Co", gst="29TESTT1234X1ZE"):
     return CompanyProfile(
         name=name,
         address="Somewhere",
@@ -560,7 +560,7 @@ def test_tax_ledger_includes_ledger_gst(db_session):
     )
 
     assert len(response.entries) == 1
-    assert response.entries[0].ledger_gst == "29ABCDE1234F1Z5"
+    assert response.entries[0].ledger_gst == "29ABCDE1234F1ZW"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -850,7 +850,7 @@ def test_gstr1_json_export_blocked_on_malformed_hsn(db_session):
             to_date=date(2027, 1, 31),
             db=db_session,
             _=user,
-            active_company=_make_company(gst="29TESTT1234X1Z5"),
+            active_company=_make_company(gst="29TESTT1234X1ZE"),
         )
     assert exc_info.value.status_code == 400
     assert "99842" in exc_info.value.detail
@@ -959,9 +959,9 @@ def test_gstr1_export_json_structure(db_session):
     content = response.body
 
     data = _json.loads(content)
-    assert data["gstin"] == "29TESTT1234X1Z5"
+    assert data["gstin"] == "29TESTT1234X1ZE"
     assert len(data["b2b"]) == 1
-    assert data["b2b"][0]["ctin"] == "29ABCDE1234F1Z5"
+    assert data["b2b"][0]["ctin"] == "29ABCDE1234F1ZW"
     assert len(data["b2b"][0]["inv"]) == 1
     assert data["b2b"][0]["inv"][0]["inum"] == "JSON-001"
     assert "doc_issue" in data
@@ -1228,7 +1228,7 @@ def test_gstr1_b2b_pos_uses_customer_state_code(db_session):
     """B2B JSON export should set POS to customer's state code (ctin[:2])."""
     user, ledger = _seed_basics(db_session)
     # Customer GSTIN starts with "27" (Maharashtra)
-    ledger.gst = "27ABCDE1234F1Z5"
+    ledger.gst = "27ABCDE1234F1Z0"
     db_session.flush()
 
     _add_invoice_with_item(
@@ -1245,7 +1245,7 @@ def test_gstr1_b2b_pos_uses_customer_state_code(db_session):
     db_session.commit()
 
     # Company GSTIN starts with "29" (Karnataka)
-    company = _make_company(gst="29TESTT1234X1Z5")
+    company = _make_company(gst="29TESTT1234X1ZE")
 
     response = gstr1_export_json(
         from_date=date(2027, 3, 1),
@@ -1259,7 +1259,7 @@ def test_gstr1_b2b_pos_uses_customer_state_code(db_session):
     data = _json.loads(response.body)
     assert len(data["b2b"]) == 1
     # POS should be "27" (customer's state), NOT "29" (company's state)
-    assert data["b2b"][0]["ctin"] == "27ABCDE1234F1Z5"
+    assert data["b2b"][0]["ctin"] == "27ABCDE1234F1Z0"
     assert data["b2b"][0]["inv"][0]["pos"] == "27"
 
 
@@ -1293,7 +1293,7 @@ def test_gstr1_cdnr_ctin_from_invoice_id(db_session):
     )
     db_session.commit()
 
-    company = _make_company(gst="29TESTT1234X1Z5")
+    company = _make_company(gst="29TESTT1234X1ZE")
 
     response = gstr1_export_json(
         from_date=date(2027, 4, 1),
@@ -1307,7 +1307,7 @@ def test_gstr1_cdnr_ctin_from_invoice_id(db_session):
     data = _json.loads(response.body)
     # CDNR is grouped by customer GSTIN, with notes under "nt".
     assert len(data["cdnr"]) == 1
-    assert data["cdnr"][0]["ctin"] == "29ABCDE1234F1Z5"
+    assert data["cdnr"][0]["ctin"] == "29ABCDE1234F1ZW"
     assert len(data["cdnr"][0]["nt"]) == 1
     assert data["cdnr"][0]["nt"][0]["nt_num"] == "CDNR-CN-001"
     assert data["cdnr"][0]["nt"][0]["pos"] == "29"
@@ -1348,7 +1348,7 @@ def test_gstr1_discount_credit_note_is_reported_as_a_credit_note(db_session):
         to_date=date(2027, 4, 30),
         db=db_session,
         _=user,
-        active_company=_make_company(gst="29TESTT1234X1Z5"),
+        active_company=_make_company(gst="29TESTT1234X1ZE"),
     )
 
     import json as _json
@@ -1428,7 +1428,7 @@ def test_gstr1_b2cs_uses_gstn_schema_fields(db_session):
         igst_amount=0,
     )
     db_session.commit()
-    company = _make_company(gst="29TESTT1234X1Z5")
+    company = _make_company(gst="29TESTT1234X1ZE")
 
     data = _export_json_data(db_session, user, company, date(2026, 4, 1), date(2026, 4, 30))
 
@@ -1476,7 +1476,7 @@ def test_gstr1_doc_issue_uses_nature_code_and_ranges(db_session):
         igst_amount=0,
     )
     db_session.commit()
-    company = _make_company(gst="29TESTT1234X1Z5")
+    company = _make_company(gst="29TESTT1234X1ZE")
 
     data = _export_json_data(db_session, user, company, date(2026, 4, 1), date(2026, 4, 30))
 
@@ -1493,7 +1493,7 @@ def test_gstr1_doc_issue_uses_nature_code_and_ranges(db_session):
 def test_gstr1_doc_issue_keeps_b2b_and_b2c_in_same_invoice_series(db_session):
     """Table 13 must not split one invoice series by recipient registration."""
     user, ledger = _seed_basics(db_session)
-    company = _make_company(gst="29TESTT1234X1Z5")
+    company = _make_company(gst="29TESTT1234X1ZE")
 
     # B2B invoice — ledger has GSTIN
     _add_invoice_with_item(
@@ -1578,7 +1578,7 @@ def test_gstr1_hsn_section_splits_b2b_with_rate(db_session):
         igst_amount=0,
     )
     db_session.commit()
-    company = _make_company(gst="29TESTT1234X1Z5")
+    company = _make_company(gst="29TESTT1234X1ZE")
 
     data = _export_json_data(db_session, user, company, date(2026, 4, 1), date(2026, 4, 30))
 
@@ -1618,7 +1618,7 @@ def test_gstr1_hsn_row_uses_product_unit_and_trimmed_desc(db_session):
         to_date=date(2027, 5, 31),
         db=db_session,
         _=user,
-        active_company=_make_company(gst="29TESTT1234X1Z5"),
+        active_company=_make_company(gst="29TESTT1234X1ZE"),
     )
 
     import json as _json
@@ -1637,7 +1637,7 @@ def test_gstr1_hsn_desc_is_populated(db_session):
     back to the HSN code itself so the field is always present and non-empty.
     """
     user, ledger = _seed_basics(db_session)
-    company = _make_company(gst="29TESTT1234X1Z5")
+    company = _make_company(gst="29TESTT1234X1ZE")
 
     invoice = _add_invoice_with_item(
         db_session, ledger, user,
@@ -1670,7 +1670,7 @@ def test_gstr1_hsn_desc_falls_back_to_hsn_code_when_no_description(db_session):
     where the item description was left blank.
     """
     user, ledger = _seed_basics(db_session)
-    company = _make_company(gst="29TESTT1234X1Z5")
+    company = _make_company(gst="29TESTT1234X1ZE")
 
     _add_invoice_with_item(
         db_session, ledger, user,
@@ -1766,7 +1766,7 @@ def test_gstr1_summary_excludes_notes_received_from_suppliers(db_session):
         to_date=date(2027, 6, 30),
         db=db_session,
         _=user,
-        active_company=_make_company(gst="29TESTT1234X1Z5"),
+        active_company=_make_company(gst="29TESTT1234X1ZE"),
     )
 
     # Only the outward note counts: 1000 taxable, not 1500.
@@ -1785,7 +1785,7 @@ def test_gstr1_export_json_excludes_supplier_notes_from_cdnr(db_session):
         to_date=date(2027, 6, 30),
         db=db_session,
         _=user,
-        active_company=_make_company(gst="29TESTT1234X1Z5"),
+        active_company=_make_company(gst="29TESTT1234X1ZE"),
     )
 
     import json as _json
@@ -1808,7 +1808,7 @@ def test_gstr1_doc_issue_excludes_the_debit_note_series(db_session):
         to_date=date(2027, 6, 30),
         db=db_session,
         _=user,
-        active_company=_make_company(gst="29TESTT1234X1Z5"),
+        active_company=_make_company(gst="29TESTT1234X1ZE"),
     )
 
     import json as _json

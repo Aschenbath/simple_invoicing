@@ -23,7 +23,7 @@ def seeded(db_session):
     ledger = Buyer(
         name="Northwind Traders",
         address="1 Dock Road",
-        gst="29ABCDE1234F1Z5",
+        gst="29ABCDE1234F1ZW",
         phone_number="9999999999",
     )
     db_session.add_all([user, ledger])

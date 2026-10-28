@@ -51,7 +51,7 @@ def _seed_basics(db_session):
     ledger = Buyer(
         name="Acme Stores",
         address="42 Market Road",
-        gst="29ABCDE1234F1Z5",
+        gst="29ABCDE1234F1ZW",
         phone_number="9999999999",
         email="ledger@example.com",
     )

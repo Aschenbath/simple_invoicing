@@ -179,12 +179,12 @@ export default function   LedgerCreatePage() {
                     className="input"
                     value={form.gst}
                     onChange={(e) => setForm((c) => ({ ...c, gst: e.target.value }))}
-                    placeholder="27ABCDE1234F1Z5"
+                    placeholder="27ABCDE1234F1Z0"
                     pattern="^$|[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][A-Za-z0-9]Z[A-Za-z0-9]$"
-                    title="Enter a valid 15-character GSTIN (e.g. 27ABCDE1234F1Z5), or leave blank"
+                    title="Enter a valid 15-character GSTIN (e.g. 27ABCDE1234F1Z0), or leave blank"
                     maxLength={15}
                   />
-                  <small className="field-hint">Optional. If entered, format must be 27ABCDE1234F1Z5.</small>
+                  <small className="field-hint">Optional. If entered, format must be 27ABCDE1234F1Z0.</small>
                 </div>
                 <div className="field field--full">
                   <label htmlFor="ledger-opening-balance">Opening balance</label>

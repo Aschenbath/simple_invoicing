@@ -159,14 +159,21 @@ export function uniqueSku() {
 /**
  * Generate a valid, unique GSTIN.
  * Format: 2 digits + 5 uppercase letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric
- * Example: 27ABCDE1234F1Z5
+ * Example: 27ABCDE1234F1Z0 (synthetic, with a valid check digit)
  */
 export function uniqueGstin(stateCode = '27') {
   const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const pick = () => alpha[Math.floor(Math.random() * 26)];
   const digit = () => String(Math.floor(Math.random() * 10));
-  // pos 0-1: state code, 2-6: 5 letters, 7-10: 4 digits, 11: letter, 12: alphanumeric, 13: Z, 14: alphanumeric
-  return `${stateCode}${pick()}${pick()}${pick()}${pick()}${pick()}${digit()}${digit()}${digit()}${digit()}${pick()}1Z${pick()}`;
+  // Generate the first 14 characters, then append their Luhn mod-36 check digit.
+  const prefix = `${stateCode}${pick()}${pick()}${pick()}${pick()}${pick()}${digit()}${digit()}${digit()}${digit()}${pick()}1Z`;
+  const alphabet = `0123456789${alpha}`;
+  let total = 0;
+  for (let i = 0; i < prefix.length; i++) {
+    const product = alphabet.indexOf(prefix[i]) * (i % 2 === 0 ? 1 : 2);
+    total += Math.floor(product / 36) + product % 36;
+  }
+  return prefix + alphabet[(36 - total % 36) % 36];
 }
 
 /**

@@ -232,14 +232,14 @@ def test_receipt_html_includes_invoice_allocations_section_when_present():
         mode="bank",
         reference="TXN-123",
         notes="Part payment",
-        ledger=SimpleNamespace(name="Acme Retail", address="Mumbai", phone_number="9999999999", gst="27ABCDE1234F1Z5"),
+        ledger=SimpleNamespace(name="Acme Retail", address="Mumbai", phone_number="9999999999", gst="27ABCDE1234F1Z0"),
         account=SimpleNamespace(display_name="HDFC Current", account_type="bank", bank_name="HDFC"),
         invoice_allocations=[SimpleNamespace(invoice_id=41, allocated_amount=120, invoice=invoice)],
     )
     company = SimpleNamespace(
         name="Respawn Pvt Ltd",
         address="Bengaluru",
-        gst="29ABCDE1234F1Z5",
+        gst="29ABCDE1234F1ZW",
         phone_number="8888888888",
         email="billing@example.com",
         currency_code="INR",

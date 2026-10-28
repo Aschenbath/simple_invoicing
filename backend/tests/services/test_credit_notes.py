@@ -33,14 +33,14 @@ from src.models.credit_note import CreditNote, CreditNoteItem
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def make_ledger(id=1, gst="29ABCDE1234F1Z5"):
+def make_ledger(id=1, gst="29ABCDE1234F1ZW"):
     l = Ledger()
     l.id = id
     l.gst = gst
     return l
 
 
-def make_invoice(id, ledger_id=1, status="active", company_gst="29XYZAB1234C1Z7", taxable_amount=1000,
+def make_invoice(id, ledger_id=1, status="active", company_gst="29XYZAB1234C1ZQ", taxable_amount=1000,
                  voucher_type="sales"):
     inv = Invoice()
     inv.id = id
@@ -98,14 +98,14 @@ class TestHelpers:
         assert _money(Decimal("1.004")) == Decimal("1.00")
 
     def test_is_interstate_same_state(self):
-        assert _is_interstate("29ABCDE1234F1Z5", "29XYZAB1234C1Z7") is False
+        assert _is_interstate("29ABCDE1234F1ZW", "29XYZAB1234C1ZQ") is False
 
     def test_is_interstate_different_state(self):
-        assert _is_interstate("29ABCDE1234F1Z5", "27XYZAB1234C1Z7") is True
+        assert _is_interstate("29ABCDE1234F1ZW", "27XYZAB1234C1ZU") is True
 
     def test_is_interstate_missing_gst(self):
-        assert _is_interstate(None, "29XYZAB1234C1Z7") is False
-        assert _is_interstate("29ABCDE1234F1Z5", None) is False
+        assert _is_interstate(None, "29XYZAB1234C1ZQ") is False
+        assert _is_interstate("29ABCDE1234F1ZW", None) is False
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -40,6 +40,20 @@ A Tally-inspired full-stack application with dual-voucher accounting, inventory 
 - **Docker Ready** — One-command dev and production setup
 - **E2E Tested** — Playwright test suite for critical workflows
 
+### GSTIN validation
+
+Company, buyer and ledger submissions normalize GSTINs to uppercase and check
+their 15-character format, state code (01-38, 97 or 99), and Luhn mod-36 check
+digit. Blank optional GSTINs remain supported. For a synthetic example,
+`27ABCDE1234F1Z0` passes these checks; the former `27ABCDE1234F1Z5` example has an
+incorrect check digit. These local checks do not confirm registration on the GST
+portal.
+
+Previously saved buyer and ledger records remain readable even if their GSTIN
+fails the newer state/check-digit checks. Correct the GSTIN before resubmitting
+it; existing stored identifiers are not automatically rewritten. Regression
+tests cover the validation rules, request schemas, and legacy response handling.
+
 ## Tech Stack
 
 | Layer | Technology |

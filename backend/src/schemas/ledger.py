@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from pydantic import BaseModel, Field, field_validator
 
-from src.core.validation import normalize_gstin
+from src.core.validation import normalize_gstin, normalize_gstin_format
 
 
 class LedgerCreate(BaseModel):
@@ -45,7 +45,7 @@ class LedgerOut(BaseModel):
     @field_validator("gst", mode="before")
     @classmethod
     def normalize_gst_output(cls, value: str | None) -> str:
-        normalized = normalize_gstin(value)
+        normalized = normalize_gstin_format(value)
         return normalized or ""
 
     class Config:
