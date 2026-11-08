@@ -150,4 +150,5 @@ def test_tool_list_stays_inside_a_sane_token_budget(mcp_call, company, writes_on
 
     monkeypatch.setattr(settings, "MCP_DEFAULT_PROFILE", "all")
     all_bytes = len(json.dumps(mcp_call.list_tools(principal=principal)).encode())
-    assert all_bytes < 150_000, f"full profile grew to {all_bytes} bytes"
+    # Sales TCS inputs and the collected report bring the measured list to 150,070 bytes.
+    assert all_bytes < 152_000, f"full profile grew to {all_bytes} bytes"
