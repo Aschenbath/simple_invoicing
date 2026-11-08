@@ -169,6 +169,8 @@ async def send_invoice_email(
     )
     pdf_bytes = pdf_buf.read()
 
+    from src.services.pdf_templates.tcs import tcs_label
+
     inv_number = invoice.invoice_number or f"#{invoice.id}"
     inv_date = invoice.invoice_date.strftime("%d %b %Y") if invoice.invoice_date else "N/A"
 
@@ -183,6 +185,8 @@ async def send_invoice_email(
         due_date=None,  # due_date column is not yet mapped in the Python Invoice model
         buyer_name=invoice.ledger_name or (invoice.ledger.name if invoice.ledger else ""),
         total_amount=_fmt(float(invoice.total_amount)),
+        tcs_label=tcs_label(invoice) if invoice.tcs_section_id else None,
+        tcs_amount=_fmt(float(invoice.tcs_amount or 0)),
         items_count=len(invoice.items or []),
         currency=_symbol(currency_code),
         message=payload.message,

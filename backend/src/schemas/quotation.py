@@ -1,3 +1,5 @@
+from src.schemas.tcs import TcsInput, TcsOut
+
 from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Literal
@@ -57,7 +59,7 @@ class QuotationItemCreate(BaseModel):
         return _check_places(value, 3)
 
 
-class QuotationFields(BaseModel):
+class QuotationFields(TcsInput):
     ledger_id: int
     quotation_date: date | None = Field(default=None, ge=EARLIEST_DOCUMENT_DATE, le=LATEST_DOCUMENT_DATE)
     # Left out: 30 days from the quotation date on create, unchanged on edit.
@@ -129,7 +131,7 @@ class LinkedInvoiceOut(BaseModel):
     status: str
 
 
-class QuotationOut(BaseModel):
+class QuotationOut(TcsOut):
     model_config = ConfigDict(from_attributes=True)
 
     id: int

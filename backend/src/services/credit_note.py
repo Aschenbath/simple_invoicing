@@ -24,6 +24,8 @@ from src.services.gst_tax_service import (
 )
 from src.services.inventory_service import InventoryManager
 from src.services.company_access import company_scope
+from src.services.sales_tcs import credit_tcs
+from src.services.document_totals import require_money_fits
 
 
 def _return_note(credit_note_number: str) -> str:
@@ -102,7 +104,7 @@ def _recompute_credit_status(invoice_id: int, db: Session, company_id: int | Non
     from src.models.credit_note import CreditNoteItem as CNItem, CreditNote as CN
 
     result_query = (
-        db.query(func.sum(CNItem.line_total))
+        db.query(func.sum(CNItem.line_total + CNItem.tcs_amount + CNItem.invoice_adjustment_amount))
         .join(CN, CN.id == CNItem.credit_note_id)
         .filter(
             CNItem.invoice_id == invoice_id,
@@ -146,6 +148,9 @@ def create_credit_note(
     if company_id is not None:
         invoices_query = invoices_query.filter(company_scope(Invoice.company_id, company_id))
     invoices = invoices_query.all()
+    if any(invoice.tcs_section_id for invoice in invoices):
+        # Serialise proportional reversals and re-read after acquiring the lock.
+        invoices = invoices_query.order_by(Invoice.id).with_for_update().populate_existing().all()
     found_ids = {inv.id for inv in invoices}
     missing = set(payload.invoice_ids) - found_ids
     if missing:
@@ -453,6 +458,12 @@ def create_credit_note(
                 ),
             )
 
+    credit_tcs(db, invoices, built_items)
+    tcs_total = sum((item.get("tcs_amount", Decimal("0")) for item in built_items), Decimal("0"))
+    adjustment_total = sum((item.get("invoice_adjustment_amount", Decimal("0")) for item in built_items), Decimal("0"))
+    total = _money(total + tcs_total + adjustment_total)
+    require_money_fits("The credit note total", total, tcs_total, adjustment_total)
+
     # ── 7. Persist CreditNote ────────────────────────────────────────────────
     cn = CreditNote(
         credit_note_number=cn_number,
@@ -472,6 +483,9 @@ def create_credit_note(
         sgst_amount=sgst_total,
         igst_amount=igst_total,
         total_amount=total,
+        tcs_amount=tcs_total,
+        tcs_base_amount=sum((item.get("tcs_base_amount", Decimal("0")) for item in built_items), Decimal("0")),
+        invoice_adjustment_amount=adjustment_total,
     )
     db.add(cn)
     db.flush()  # get cn.id

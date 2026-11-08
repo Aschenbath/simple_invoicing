@@ -31,6 +31,7 @@
 {% set items = items + [("Items", items_count ~ " item" ~ ("" if items_count == 1 else "s"), None)] %}
 
 {% call ui.recap("Invoice from " ~ (company_name or "us"), "Invoice " ~ invoice_number) %}
+    {% if tcs_label %}{{ ui.rows([(tcs_label, (currency | default("₹")) ~ tcs_amount, None)]) }}{% endif %}
     {{ ui.amount("Total amount", total) }}
     {{ ui.rows(items) }}
     {% if share_url %}

@@ -1,3 +1,5 @@
+import { useSalesTcs } from '../../hooks/useSalesTcs';
+import TcsFields from '../../components/TcsFields';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -315,6 +317,7 @@ export default function InvoicesPage() {
 
   const activeCurrencyCode = company?.currency_code || 'INR';
   const selectedLedger = ledgers.find((entry) => entry.id === Number(selectedLedgerId));
+  const tcs = useSalesTcs(!!company?.enable_tcs && (voucherType === 'sales' || isQuote), invoiceDate, selectedLedger);
   const placeOfSupply = resolvePlaceOfSupply(placeOfSupplyChoice, selectedLedgerId, company?.gst, selectedLedger?.gst);
   const placeOfSupplyWarning = stalePlaceOfSupplyWarning(
     savedPlaceOfSupply?.ledgerId === selectedLedgerId ? savedPlaceOfSupply.code : null,
@@ -339,13 +342,14 @@ export default function InvoicesPage() {
     }];
   });
   const {
-    invoiceDiscountAmount, afterDiscountTotal,
+    invoiceDiscountAmount, afterDiscountTotal, tcsBaseAmount = 0, tcsAmount = 0,
     roundOffAmount: roundOffPreviewAmount, total: projectedTotalAmount,
   } = computeInvoiceTotals(totalLines, {
     taxInclusive,
     invoiceDiscount: { type: invoiceDiscountType, value: Number(invoiceDiscountValue) },
     applyRoundOff,
     interstateSupply: composerInterstateSupply,
+    tcs: tcs.calculation,
   });
 
   const resolvedDueDate = resolveDueDate({
@@ -658,6 +662,7 @@ export default function InvoicesPage() {
     // Per-invoice, never remembered: a carried-over discount would silently
     // reduce the next invoice's total.
     setInvoiceDiscountValue('');
+    tcs.restore();
     setStockShortage(null);
     setPaymentMode('cash');
     setPaymentReference('');
@@ -721,6 +726,7 @@ export default function InvoicesPage() {
     setApplyRoundOff(quotation.apply_round_off);
     setInvoiceDiscountType((quotation.discount_type as 'percentage' | 'net') || 'percentage');
     setInvoiceDiscountValue(quotation.discount_value != null ? String(quotation.discount_value) : '');
+    tcs.restore(quotation);
     setInvoiceDate(quotation.quotation_date);
     setValidUntil(quotation.valid_until ?? '');
     validUntilEditedRef.current = true;
@@ -755,6 +761,7 @@ export default function InvoicesPage() {
     setApplyRoundOff(invoice.apply_round_off ?? false);
     setInvoiceDiscountType(invoice.discount_type || 'percentage');
     setInvoiceDiscountValue(invoice.discount_value != null ? String(invoice.discount_value) : '');
+    tcs.restore(invoice);
     const dates = conversionDateDefaults(readInvoiceComposerPrefs());
     setInvoiceDate(dates.invoiceDate);
     setDueDateMode(dates.dueDateMode);
@@ -796,6 +803,7 @@ export default function InvoicesPage() {
         reference_notes: referenceNotes.trim() || null,
         tax_inclusive: taxInclusive,
         apply_round_off: applyRoundOff,
+        ...tcs.payload,
         discount_type: invoiceDiscountType || null,
         discount_value: invoiceDiscountValue ? Number(invoiceDiscountValue) : null,
         shipping_address_same_as_billing: shippingSameAsBilling,
@@ -843,6 +851,7 @@ export default function InvoicesPage() {
     setApplyRoundOff(invoice.apply_round_off ?? false);
     setInvoiceDiscountType((invoice.discount_type as 'percentage' | 'net') || 'percentage');
     setInvoiceDiscountValue(invoice.discount_value != null ? String(invoice.discount_value) : '');
+    tcs.restore(invoice);
     setSelectedLedgerId(String(invoice.ledger_id));
     setPlaceOfSupplyChoice(invoice.place_of_supply ? { ledgerId: String(invoice.ledger_id), code: invoice.place_of_supply } : null);
     setSavedPlaceOfSupply(invoice.place_of_supply ? { ledgerId: String(invoice.ledger_id), code: invoice.place_of_supply } : null);
@@ -903,6 +912,7 @@ export default function InvoicesPage() {
     setApplyRoundOff(invoice.apply_round_off ?? false);
     setInvoiceDiscountType((invoice.discount_type as 'percentage' | 'net') || 'percentage');
     setInvoiceDiscountValue(invoice.discount_value != null ? String(invoice.discount_value) : '');
+    tcs.restore(invoice, true);
     setSelectedLedgerId(String(invoice.ledger_id));
     setPlaceOfSupplyChoice(invoice.place_of_supply ? { ledgerId: String(invoice.ledger_id), code: invoice.place_of_supply } : null);
     setSavedPlaceOfSupply(invoice.place_of_supply ? { ledgerId: String(invoice.ledger_id), code: invoice.place_of_supply } : null);
@@ -1029,6 +1039,7 @@ export default function InvoicesPage() {
         reference_notes: isSaleLike ? (referenceNotes.trim() || null) : null,
         tax_inclusive: taxInclusive,
         apply_round_off: applyRoundOff,
+        ...tcs.payload,
         discount_type: invoiceDiscountType || null,
         discount_value: invoiceDiscountValue ? Number(invoiceDiscountValue) : null,
         ...(voucherType === 'sales' ? {
@@ -1376,6 +1387,8 @@ export default function InvoicesPage() {
                 </div>
               ) : null}
             </div>
+
+            <TcsFields tcs={tcs} baseAmount={tcsBaseAmount} tcsAmount={tcsAmount} currency={activeCurrencyCode} />
 
             <label className="form-advanced-toggle">
               <input

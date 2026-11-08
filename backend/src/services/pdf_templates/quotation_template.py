@@ -12,6 +12,8 @@ amounts on it could wrongly try to claim it. So it never prints "Tax Invoice",
 the note below before release.
 """
 
+from src.services.pdf_templates.tcs import tcs_html
+
 from datetime import date
 
 from src.models.company_account import CompanyAccount
@@ -497,6 +499,7 @@ def _build_quotation_html(
       {_build_pdf_tax_breakup_rows(quotation, currency)}
       <p>Total estimated GST: {_fmt_currency(float(quotation.total_tax_amount or 0), currency)}</p>
       {_build_invoice_discount_html(quotation, currency)}
+      {tcs_html(quotation, currency)}
       {round_off_html}
       <p class="eyebrow" style="margin-top: 10px;">{title} total</p>
       <p class="sheet__total-value">{_fmt_currency(float(quotation.total_amount or 0), currency)}</p>

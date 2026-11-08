@@ -13,6 +13,9 @@ def suggest_withholding(section, base_amount, party_type: str | None, has_pan: b
     else:
         rate = Decimal(str(section.rate_other))
     if section.kind == "tcs":
+        if not has_pan:
+            normal_rate = Decimal(str(section.rate_individual_huf if party_type in {"individual", "huf"} else section.rate_other))
+            rate = max(rate, normal_rate * 2, Decimal("5"))
         rate = min(rate, Decimal("20"))
     amount = (base * rate / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     return {"rate": float(rate), "amount": float(amount)}

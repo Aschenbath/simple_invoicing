@@ -1,5 +1,7 @@
 """Sales invoice HTML template generation."""
 
+from src.services.pdf_templates.tcs import tcs_html
+
 from src.models.company_account import CompanyAccount
 from src.models.invoice import Invoice
 from src.models.product import Product
@@ -605,6 +607,7 @@ def _build_invoice_html(invoice: Invoice, products: list[Product], invoice_bank_
       {tax_breakup_rows}
       <p>Total tax: {_fmt_currency(float(invoice.total_tax_amount or 0), currency)}</p>
       {invoice_discount_label}
+      {tcs_html(invoice, currency)}
       {round_off_html}
       <p class="eyebrow" style="margin-top: 10px;">Total due</p>
       <p class="invoice-sheet__total-value">{_fmt_currency(float(invoice.total_amount), currency)}</p>

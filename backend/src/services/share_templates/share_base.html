@@ -447,6 +447,7 @@
         {% if summary.date_label %}
         <div><dt>{{ date_label_caption }}</dt><dd>{{ summary.date_label }}</dd></div>
         {% endif %}
+        {% if summary.tcs_label %}<div><dt>{{ summary.tcs_label }}</dt><dd>{{ summary.tcs_amount_label }}</dd></div>{% endif %}
         <div><dt>{{ amount_caption }}</dt><dd class="figure">{{ summary.amount_label }}</dd></div>
       </dl>
       {% if summary.status_notice %}<p class="recap-note">{{ summary.status_notice }}</p>{% endif %}

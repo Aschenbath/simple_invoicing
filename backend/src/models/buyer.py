@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Boolean, text, Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from src.db.base import Base
@@ -14,6 +14,7 @@ class Buyer(Base):
     address = Column(String, nullable=False)
     gst = Column(String, nullable=True, index=True)
     pan = Column(String(10), nullable=True, index=True)
+    tcs_declaration_received = Column(Boolean, nullable=False, default=False, server_default=text("false"))
     party_type = Column(String(20), nullable=True)
     phone_number = Column(String, nullable=False)
     email = Column(String, nullable=True)

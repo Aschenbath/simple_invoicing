@@ -33,6 +33,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
+from src.services.pdf_templates.tcs import tcs_label
 from src.core.config import settings
 from src.models.buyer import Buyer as Ledger
 from src.models.company import CompanyProfile
@@ -638,6 +639,8 @@ class ShareSummary:
     # (valid until, expired, converted). Printed on the page, not just in the PDF.
     document_note: str | None = None
     status_notice: str | None = None
+    tcs_label: str | None = None
+    tcs_amount_label: str | None = None
 
 
 def _upi_fields(payment: UpiPaymentRequest | None, currency: str, *, with_button: bool = False) -> dict:
@@ -731,6 +734,8 @@ def build_share_summary(db: Session, link: ShareLink) -> ShareSummary | None:
             # issued under even if the company has since been renamed or rebranded.
             company_name=invoice.company_name or company_name,
             amount_label=_fmt_currency(float(invoice.total_amount or 0), invoice_currency),
+            tcs_label=tcs_label(invoice) if invoice.tcs_section_id else None,
+            tcs_amount_label=_fmt_currency(float(invoice.tcs_amount or 0), invoice_currency),
             date_label=_fmt_date(invoice.invoice_date),
             pdf_filename=f"invoice_{invoice.invoice_number or invoice.id}.pdf",
             available=invoice.status != "cancelled",

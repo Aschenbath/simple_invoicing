@@ -1067,7 +1067,10 @@ def duplicate_invoice(
 
     try:
         active_fy = get_active_fy(db, company_id=active_company.id)
+        from src.services.sales_tcs import copy_tcs_input
+
         payload = InvoiceCreate(
+            **copy_tcs_input(db, original, india_today()),
             ledger_id=original.ledger_id,
             voucher_type=original.voucher_type,
             invoice_date=india_today(),

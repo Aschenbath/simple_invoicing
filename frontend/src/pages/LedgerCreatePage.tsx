@@ -30,6 +30,7 @@ export default function   LedgerCreatePage() {
     gst: '',
     pan: '',
     party_type: null,
+    tcs_declaration_received: false,
     opening_balance: null,
     phone_number: '',
     email: '',
@@ -57,6 +58,7 @@ export default function   LedgerCreatePage() {
           gst: l.gst || '',
           pan: l.pan || (l.gst ? l.gst.slice(2, 12) : ''),
           party_type: l.party_type || null,
+          tcs_declaration_received: l.tcs_declaration_received || false,
           opening_balance: l.opening_balance,
           phone_number: l.phone_number,
           email: l.email || '',
@@ -93,6 +95,7 @@ export default function   LedgerCreatePage() {
         gst: normalizeGstinInput(form.gst),
         pan: form.pan.trim().toUpperCase(),
         party_type: form.party_type || null,
+        tcs_declaration_received: form.tcs_declaration_received,
         opening_balance: form.opening_balance,
         phone_number: form.phone_number.trim(),
         email: form.email.trim(),
@@ -241,6 +244,11 @@ export default function   LedgerCreatePage() {
                     <option value="firm">Firm</option>
                     <option value="other">Other</option>
                   </select>
+                </div>
+                <div className="field field--full">
+                  <label><input type="checkbox" checked={form.tcs_declaration_received}
+                    onChange={(e) => setForm((current) => ({ ...current, tcs_declaration_received: e.target.checked }))} /> TCS manufacturing declaration received</label>
+                  <small className="field-hint">Suggests no TCS for eligible goods under s.394(2). Review the declaration before collecting.</small>
                 </div>
                 <div className="field field--full">
                   <label htmlFor="ledger-opening-balance">Opening balance</label>

@@ -85,6 +85,9 @@ def make_cn(id=1, status="active", ledger_id=1):
     cn.sgst_amount = 9
     cn.igst_amount = 0
     cn.total_amount = 118
+    cn.tcs_amount = 0
+    cn.tcs_base_amount = 0
+    cn.invoice_adjustment_amount = 0
     cn.created_at = datetime.utcnow()
     cn.cancelled_at = None
     cn.items = []
@@ -410,7 +413,8 @@ class TestCreateCreditNoteValidation:
         from fastapi import HTTPException
 
         db = self._discount_setup(line_total="118", already_credited="0")
-        with pytest.raises(HTTPException) as exc:
+        with patch("src.services.credit_note.generate_next_number", return_value="CN-001"), \
+             pytest.raises(HTTPException) as exc:
             create_credit_note(self._discount_payload("5000"), db, current_user_id=1)
         assert exc.value.status_code == 400
         assert "would exceed its line total of 118.00" in exc.value.detail
@@ -420,7 +424,8 @@ class TestCreateCreditNoteValidation:
 
         # ₹100 already credited against the same line; ₹19 more passes ₹118.
         db = self._discount_setup(line_total="118", already_credited="100")
-        with pytest.raises(HTTPException) as exc:
+        with patch("src.services.credit_note.generate_next_number", return_value="CN-001"), \
+             pytest.raises(HTTPException) as exc:
             create_credit_note(self._discount_payload("19"), db, current_user_id=1)
         assert exc.value.status_code == 400
 
@@ -429,7 +434,8 @@ class TestCreateCreditNoteValidation:
 
         # A return already credited ₹59 of the ₹118 line; ₹60 more is too much.
         db = self._discount_setup(line_total="118", already_credited="59")
-        with pytest.raises(HTTPException) as exc:
+        with patch("src.services.credit_note.generate_next_number", return_value="CN-001"), \
+             pytest.raises(HTTPException) as exc:
             create_credit_note(self._discount_payload("60"), db, current_user_id=1)
         assert exc.value.status_code == 400
 
@@ -521,7 +527,7 @@ class TestCancelCreditNote:
         db.delete.assert_called_once_with(cn)
 
     def test_cancel_marks_response_cancelled_and_deletes(self):
-        item = CreditNoteItem()
+        item = CreditNoteItem(tcs_amount=0, tcs_base_amount=0, invoice_adjustment_amount=0)
         item.id = 1
         item.invoice_id = 5
         item.invoice_item_id = 11
@@ -549,7 +555,7 @@ class TestCancelCreditNote:
         mock_recompute.assert_called_once_with(5, db)
 
     def test_cancel_return_credit_note_reverses_inventory(self):
-        item = CreditNoteItem()
+        item = CreditNoteItem(tcs_amount=0, tcs_base_amount=0, invoice_adjustment_amount=0)
         item.id = 1
         item.invoice_id = 5
         item.invoice_item_id = 11
@@ -741,7 +747,7 @@ class TestInwardCreditNotes:
         assert "DN-2026-004" in exc.value.detail
 
     def test_cancelling_a_purchase_return_brings_the_stock_back(self):
-        item = CreditNoteItem()
+        item = CreditNoteItem(tcs_amount=0, tcs_base_amount=0, invoice_adjustment_amount=0)
         item.id = 1
         item.invoice_id = 5
         item.invoice_item_id = 11

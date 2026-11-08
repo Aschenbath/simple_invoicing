@@ -55,12 +55,15 @@ def apply_discount_and_round_off(
     raw_total: Decimal,
     discount_type: str | None,
     discount_value: float | None,
+    *,
+    tcs_override: Decimal | None = None,
 ) -> None:
-    """Take a document-level discount off ``raw_total``, then round it if asked.
+    """Subtract the document discount, add TCS, then round if asked.
 
     ``raw_total`` is taxable plus tax. Reads ``document.apply_round_off`` and sets
     the discount fields, ``round_off_amount`` and ``total_amount``.
     """
+    original_total = raw_total
     document.discount_type = discount_type
     document.discount_value = discount_value
     if discount_type and discount_value is not None and discount_value > 0:
@@ -70,6 +73,17 @@ def apply_discount_and_round_off(
             discount_amount = _money(Decimal(str(discount_value)))
         discount_amount = min(discount_amount, raw_total)
         raw_total = _money(raw_total - discount_amount)
+
+    if getattr(document, "tcs_section_id", None):
+        discount = original_total - raw_total
+        base = raw_total if document.tcs_base == "gross" else max(
+            Decimal("0"), Decimal(str(document.taxable_amount)) - discount
+        )
+        document.tcs_base_amount = _money(base)
+        document.tcs_amount = _money(tcs_override if tcs_override is not None else
+                                     base * Decimal(str(document.tcs_rate)) / Decimal("100"))
+        require_money_fits("TCS", document.tcs_base_amount, document.tcs_amount)
+        raw_total = _money(raw_total + document.tcs_amount)
 
     if document.apply_round_off:
         rounded_total = raw_total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)

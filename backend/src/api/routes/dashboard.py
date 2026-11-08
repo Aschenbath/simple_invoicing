@@ -249,6 +249,7 @@ def get_dashboard_metrics(
             Invoice.taxable_amount,
             Invoice.total_tax_amount,
             Invoice.round_off_amount,
+            Invoice.tcs_amount,
             Invoice.total_amount,
         )
         .join(InvoiceItem, InvoiceItem.invoice_id == Invoice.id)

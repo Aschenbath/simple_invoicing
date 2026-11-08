@@ -22,12 +22,14 @@ from src.models.invoice import Invoice, InvoiceItem
 from src.models.ledger_address import LedgerAddress
 from src.models.product import Product
 from src.schemas.invoice import InvoiceCreate
+from src.services.sales_tcs import prepare_tcs
 from src.services.document_totals import apply_discount_and_round_off, require_money_fits, snapshot_company_fields
 from src.services.gst_tax_service import (
     assign_invoice_tax_totals,
     assign_item_tax_split,
     default_place_of_supply,
     invoice_is_interstate,
+    india_today,
     money as _money,
 )
 from src.services.inventory_service import InventoryManager
@@ -463,6 +465,12 @@ class InvoiceProcessor:
         ledger = self.require_ledger(payload.ledger_id, company_id)
         same_ledger = invoice.ledger_id == ledger.id
 
+        original_tcs_section = invoice.tcs_section_id
+        original_tcs_amount = Decimal(str(invoice.tcs_amount or 0))
+        original_total = Decimal(str(invoice.total_amount or 0))
+        tcs_date = payload.invoice_date or (invoice.invoice_date.date() if invoice.invoice_date else india_today())
+        tcs_override = prepare_tcs(self.db, invoice, payload, company, ledger, tcs_date)
+        invoice.ledger_pan = ledger.pan
         # Snapshot company / ledger fields onto the invoice record
         invoice.company_id = company_id
         invoice.ledger_id = ledger.id
@@ -609,7 +617,13 @@ class InvoiceProcessor:
         raw_total = _money(taxable_total + tax_total)
 
         # Apply invoice-level discount and round off
-        apply_discount_and_round_off(invoice, raw_total, payload.discount_type, payload.discount_value)
+        apply_discount_and_round_off(invoice, raw_total, payload.discount_type, payload.discount_value, tcs_override=tcs_override)
+        if (original_tcs_section or invoice.tcs_section_id) and (
+            original_tcs_section != invoice.tcs_section_id
+            or original_tcs_amount != Decimal(str(invoice.tcs_amount or 0))
+            or original_total != Decimal(str(invoice.total_amount))
+        ) and invoice_has_credit_notes(self.db, invoice.id):
+            raise HTTPException(400, "Cancel the credit notes before changing a TCS invoice's amounts or section")
         require_money_fits(
             "The invoice totals and discount",
             taxable_total,

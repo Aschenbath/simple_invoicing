@@ -23,6 +23,7 @@ MIGRATIONS = [
     "20261104000001_create_quotations_tables",
     "20261104000002_seed_quotation_series",
     "20261104000003_add_source_quotation_id_to_invoices",
+    "20261108000001_add_sales_tcs",
 ]
 
 pytestmark = pytest.mark.skipif(

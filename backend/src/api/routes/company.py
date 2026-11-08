@@ -90,6 +90,7 @@ def _create_company_profile(db: Session, payload: CompanyProfileUpdate) -> Compa
         eway_always_show_button=payload.eway_always_show_button,
         show_pay_qr_on_invoice=payload.show_pay_qr_on_invoice,
         show_upi_pay_button=payload.show_upi_pay_button,
+        enable_tcs=payload.enable_tcs,
     )
     db.add(profile)
     db.flush()
@@ -196,6 +197,7 @@ def _company_to_out(company: CompanyProfile) -> CompanyProfileOut:
         eway_always_show_button=company.eway_always_show_button,
         show_pay_qr_on_invoice=company.show_pay_qr_on_invoice,
         show_upi_pay_button=company.show_upi_pay_button,
+        enable_tcs=company.enable_tcs,
         terms=[
             CompanyTermOut(
                 id=t.id,
@@ -403,6 +405,7 @@ def upsert_company_profile(
             setattr(profile, field, getattr(payload, field))
     profile.show_pay_qr_on_invoice = payload.show_pay_qr_on_invoice
     profile.show_upi_pay_button = payload.show_upi_pay_button
+    profile.enable_tcs = payload.enable_tcs
     db.commit()
     db.refresh(profile)
 

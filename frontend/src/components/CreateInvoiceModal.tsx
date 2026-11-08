@@ -1,3 +1,5 @@
+import { useSalesTcs } from '../hooks/useSalesTcs';
+import TcsFields from './TcsFields';
 import { useCallback, useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
@@ -71,6 +73,7 @@ export default function CreateInvoiceModal({
   const [submitting, setSubmitting] = useState(false);
   const [stockShortage, setStockShortage] = useState<StockShortage | null>(null);
   const [currencyCode, setCurrencyCode] = useState('INR');
+  const [enableTcs, setEnableTcs] = useState(false);
   const [companyGst, setCompanyGst] = useState<string | null>(null);
   const [pristineSnapshot, setPristineSnapshot] = useState<string | null>(null);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
@@ -83,13 +86,14 @@ export default function CreateInvoiceModal({
         const [productsRes, ledgersRes, companyRes] = await Promise.all([
           api.get<{ items: Product[] }>('/products/', { params: { page_size: 500 } }),
           api.get<{ items: Ledger[] }>('/ledgers/', { params: { page_size: 500 } }),
-          api.get<{ currency_code: string | null; gst: string | null }>('/company/'),
+          api.get<{ currency_code: string | null; gst: string | null; enable_tcs: boolean }>('/company/'),
         ]);
         if (cancelled) return;
         setProducts(productsRes.data.items);
         setLedgers(ledgersRes.data.items);
         setCurrencyCode(companyRes.data.currency_code || 'INR');
         setCompanyGst(companyRes.data.gst || null);
+        setEnableTcs(companyRes.data.enable_tcs || false);
 
       } catch (err) {
         onError(getApiErrorMessage(err, 'Unable to load form data'));
@@ -101,6 +105,7 @@ export default function CreateInvoiceModal({
   }, []);
 
   const selectedLedger = ledgers.find((ledger) => ledger.id === Number(selectedLedgerId));
+  const tcs = useSalesTcs(enableTcs && voucherType === 'sales', invoiceDate, selectedLedger);
   const placeOfSupply = resolvePlaceOfSupply(placeOfSupplyChoice, selectedLedgerId, companyGst, selectedLedger?.gst);
   const composerInterstateSupply = voucherType === 'sales' && placeOfSupply
     ? isInterstatePlaceOfSupply(placeOfSupply, companyGst)
@@ -117,8 +122,8 @@ export default function CreateInvoiceModal({
       discountValue: Number(item.discount_value),
     }];
   });
-  const { total: totalAmount } = computeInvoiceTotals(totalLines, {
-    taxInclusive, interstateSupply: composerInterstateSupply,
+  const { total: totalAmount, tcsBaseAmount = 0, tcsAmount = 0 } = computeInvoiceTotals(totalLines, {
+    taxInclusive, interstateSupply: composerInterstateSupply, tcs: tcs.calculation,
   });
 
   function addItem() {
@@ -161,6 +166,7 @@ export default function CreateInvoiceModal({
     try {
       setSubmitting(true);
       const payload: InvoiceCreate = {
+        ...tcs.payload,
         ledger_id: Number(selectedLedgerId),
         voucher_type: voucherType,
         invoice_date: invoiceDate,
@@ -199,6 +205,8 @@ export default function CreateInvoiceModal({
   }
 
   const draftSnapshot = invoiceDraftSnapshot({
+    tcsSectionId: tcs.sectionId,
+    tcsAmount: tcs.amount,
     ledgerId: selectedLedgerId,
     voucherType,
     taxInclusive,
@@ -370,6 +378,7 @@ export default function CreateInvoiceModal({
                 </p>
               ) : null}
 
+              <TcsFields tcs={tcs} baseAmount={tcsBaseAmount} tcsAmount={tcsAmount} currency={currencyCode} />
               <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 0 }}>
                 <input
                   id="modal-inv-tax-inclusive"

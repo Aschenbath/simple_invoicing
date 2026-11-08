@@ -7,6 +7,8 @@ and seller snapshot they were issued under, and the invoice numbers a GST
 credit note has to cite.
 """
 
+from src.services.pdf_templates.tcs import credit_tcs_html
+
 from decimal import Decimal
 
 from src.models.company import CompanyProfile
@@ -404,6 +406,7 @@ def _build_credit_note_html(
     <p>Taxable: {_fmt_currency(float(credit_note.taxable_amount or 0), currency)}</p>
     {tax_breakup_rows}
     <p>Total tax: {_fmt_currency(total_tax, currency)}</p>
+    {credit_tcs_html(credit_note, currency)}
     <p class="eyebrow" style="margin-top: 10px;">Total credit</p>
     <p class="sheet__total-value">{_fmt_currency(float(credit_note.total_amount or 0), currency)}</p>
     <p class="sheet__amount-words">{_amount_in_words_indian(float(credit_note.total_amount or 0), currency)}</p>

@@ -84,7 +84,8 @@ def get_credit_note_ledger_summary(
             entry_order.append(credit_note.id)
 
         bucket = entry_buckets[credit_note.id]
-        amount = float(item.line_total or 0)
+        amount = (float(item.line_total or 0) + float(getattr(item, "tcs_amount", 0) or 0)
+                  + float(getattr(item, "invoice_adjustment_amount", 0) or 0))
         invoice_label = invoice.invoice_number or f"#{invoice.id}"
 
         if invoice_label not in bucket["seen_invoice_numbers"]:

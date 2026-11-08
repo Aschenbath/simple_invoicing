@@ -95,6 +95,9 @@ class CreditNoteItemOut(BaseModel):
     gst_rate: float
     taxable_amount: float
     tax_amount: float
+    tcs_base_amount: float = 0
+    tcs_amount: float = 0
+    invoice_adjustment_amount: float = 0
     line_total: float
 
     class Config:
@@ -116,6 +119,9 @@ class CreditNoteOut(BaseModel):
     cgst_amount: float
     sgst_amount: float
     igst_amount: float
+    tcs_base_amount: float = 0
+    tcs_amount: float = 0
+    invoice_adjustment_amount: float = 0
     total_amount: float
     credit_note_date: Optional[datetime] = None
     created_at: datetime

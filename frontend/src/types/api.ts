@@ -107,6 +107,7 @@ export type Ledger = {
   gst: string;
   pan: string | null;
   party_type: string | null;
+  tcs_declaration_received?: boolean;
   opening_balance: number | null;
   /** Closing balance to date (debit - credit). Only sent by the ledger list. */
   balance?: number | null;
@@ -126,6 +127,7 @@ export type LedgerCreate = {
   gst: string;
   pan: string;
   party_type: string | null;
+  tcs_declaration_received?: boolean;
   opening_balance: number | null;
   phone_number: string;
   email: string;
@@ -228,6 +230,7 @@ export type CompanyProfile = {
   eway_interstate_threshold: number;
   eway_always_show_button: boolean;
   show_pay_qr_on_invoice: boolean;
+  enable_tcs?: boolean;
   show_upi_pay_button: boolean;
 };
 
@@ -278,6 +281,7 @@ export type CompanyProfileUpdate = {
   eway_interstate_threshold?: number;
   eway_always_show_button?: boolean;
   show_pay_qr_on_invoice?: boolean;
+  enable_tcs?: boolean;
   show_upi_pay_button?: boolean;
 };
 
@@ -329,7 +333,7 @@ export type CompanyAccountUpdate = {
   is_active?: boolean;
 };
 
-export type Invoice = {
+export type Invoice = TcsSnapshot & {
   id: number;
   invoice_number: string | null;
   ledger_id: number | null;
@@ -449,7 +453,7 @@ export type QuotationItem = {
   discount_value: number | null;
 };
 
-export type Quotation = {
+export type Quotation = TcsSnapshot & {
   id: number;
   document_type: QuotationDocumentType;
   quotation_number: string;
@@ -497,7 +501,7 @@ export type Quotation = {
   invoices: { id: number; invoice_number: string | null; status: string }[];
 };
 
-export type QuotationFields = {
+export type QuotationFields = TcsInput & {
   ledger_id: number;
   quotation_date?: string;
   /** Null means it never expires. Left out, the server defaults to 30 days. */
@@ -616,7 +620,7 @@ export type PaginatedCreditNotes = {
   total_pages: number;
 };
 
-export type InvoiceCreate = {
+export type InvoiceCreate = TcsInput & {
   voucher_type: 'sales' | 'purchase';
   ledger_id: number;
   invoice_date?: string;
@@ -1217,4 +1221,19 @@ export type ShareLink = {
   view_count: number;
   last_viewed_at: string | null;
   created_at: string;
+};
+
+export type TcsInput = { tcs_section_id?: number | null; tcs_amount?: number | null };
+export type TcsSnapshot = TcsInput & {
+  tcs_section_ref?: string | null;
+  tcs_rate?: number;
+  tcs_base?: 'gross' | 'taxable' | null;
+  tcs_base_amount?: number;
+  ledger_pan?: string | null;
+};
+export type TaxWithholdingSection = {
+  id: number; kind: 'tds' | 'tcs'; act: number; section_ref: string; legacy_code: string;
+  nature: string; rate_individual_huf: number; rate_other: number; rate_no_pan: number;
+  base: 'gross' | 'taxable'; effective_from: string; effective_to: string | null;
+  threshold_single: number | null; threshold_note: string | null;
 };

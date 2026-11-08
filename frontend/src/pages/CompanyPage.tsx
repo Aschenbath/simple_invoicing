@@ -742,6 +742,7 @@ export default function CompanyPage() {
     eway_interstate_threshold: 50000,
     eway_always_show_button: true,
     show_pay_qr_on_invoice: false,
+    enable_tcs: false,
     show_upi_pay_button: false,
   });
   const [companyId, setCompanyId] = useState<number>(0);
@@ -802,6 +803,7 @@ export default function CompanyPage() {
         eway_interstate_threshold: data.eway_interstate_threshold ?? 50000,
         eway_always_show_button: data.eway_always_show_button ?? true,
         show_pay_qr_on_invoice: data.show_pay_qr_on_invoice || false,
+        enable_tcs: data.enable_tcs || false,
         show_upi_pay_button: data.show_upi_pay_button || false,
       });
       setAdditionalInfo(data.additional_company_info || '');
@@ -888,6 +890,7 @@ export default function CompanyPage() {
         eway_interstate_threshold: form.eway_interstate_threshold,
         eway_always_show_button: form.eway_always_show_button,
         show_pay_qr_on_invoice: form.show_pay_qr_on_invoice,
+        enable_tcs: form.enable_tcs,
         show_upi_pay_button: form.show_upi_pay_button,
       };
 
@@ -1256,6 +1259,12 @@ export default function CompanyPage() {
                     copies already printed from working. Add a UPI ID under Cash &amp; Bank Accounts
                     for the payment option to appear.
                   </small>
+                </div>
+
+                <div className="field field--full">
+                  <label><input type="checkbox" checked={form.enable_tcs}
+                    onChange={(e) => setForm((current) => ({ ...current, enable_tcs: e.target.checked }))} /> Enable TCS on sales invoices</label>
+                  <small className="field-hint">For specified goods such as scrap, liquor and motor vehicles. Ordinary sales of goods do not attract TCS.</small>
                 </div>
 
                 <div className="field field--full">

@@ -42,6 +42,9 @@ class CreditNote(Base):
     # report and return dates the note by this; created_at is only when the row
     # was written, in UTC.
     credit_note_date = Column(DateTime, nullable=False, default=_default_credit_note_date, index=True)
+    tcs_base_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    tcs_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    invoice_adjustment_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
     created_at = Column(DateTime, default=datetime.utcnow)
     cancelled_at = Column(DateTime, nullable=True)
 
@@ -76,6 +79,9 @@ class CreditNoteItem(Base):
     taxable_amount = Column(Numeric(10, 2), nullable=False, default=0)
     tax_amount = Column(Numeric(10, 2), nullable=False, default=0)
     line_total = Column(Numeric(10, 2), nullable=False)
+    tcs_base_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    tcs_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    invoice_adjustment_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     credit_note = relationship("CreditNote", back_populates="items")

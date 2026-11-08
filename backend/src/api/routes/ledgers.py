@@ -116,6 +116,7 @@ def _serialize_ledger(db: Session, ledger: Ledger, company_id: int | None = None
     gst=ledger.gst,
     pan=ledger.pan,
     party_type=ledger.party_type,
+    tcs_declaration_received=ledger.tcs_declaration_received,
     opening_balance=float(opening_balance_payment.amount) if opening_balance_payment else None,
     phone_number=ledger.phone_number,
     email=ledger.email,
@@ -235,8 +236,8 @@ def _ledger_balances(
   credit_note_rows = (
     db.query(
       CreditNote.ledger_id,
-      func.coalesce(func.sum(case((Invoice.voucher_type == "purchase", CreditNoteItem.line_total), else_=0)), 0),
-      func.coalesce(func.sum(case((Invoice.voucher_type != "purchase", CreditNoteItem.line_total), else_=0)), 0),
+      func.coalesce(func.sum(case((Invoice.voucher_type == "purchase", (CreditNoteItem.line_total + CreditNoteItem.tcs_amount + CreditNoteItem.invoice_adjustment_amount)), else_=0)), 0),
+      func.coalesce(func.sum(case((Invoice.voucher_type != "purchase", (CreditNoteItem.line_total + CreditNoteItem.tcs_amount + CreditNoteItem.invoice_adjustment_amount)), else_=0)), 0),
     )
     .join(CreditNoteItem, CreditNoteItem.credit_note_id == CreditNote.id)
     .join(Invoice, Invoice.id == CreditNoteItem.invoice_id)
@@ -613,6 +614,7 @@ def create_ledger(
     gst=gst,
     pan=payload.pan,
     party_type=payload.party_type,
+    tcs_declaration_received=payload.tcs_declaration_received,
     phone_number=payload.phone_number.strip(),
     email=payload.email.strip() if payload.email else None,
     website=payload.website.strip() if payload.website else None,
@@ -1182,6 +1184,7 @@ def update_ledger(
     ledger.gst = gst
     ledger.pan = payload.pan
     ledger.party_type = payload.party_type
+    ledger.tcs_declaration_received = payload.tcs_declaration_received
     ledger.phone_number = payload.phone_number.strip()
     ledger.email = payload.email.strip() if payload.email else None
     ledger.website = payload.website.strip() if payload.website else None

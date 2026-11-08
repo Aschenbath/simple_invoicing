@@ -1,3 +1,4 @@
+import { tcsLabel } from '../utils/salesTcs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy, Download, FileJson, IndianRupee, Mail, Printer, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -272,6 +273,7 @@ export default function InvoicePreview({ invoice, onClose, onError, onPaymentRec
 
         {missingBank ? <BankDetailsNotice /> : null}
 
+        {invoice.tcs_section_id && <p className="muted-text">{tcsLabel(invoice)}: {formatCurrency(invoice.tcs_amount || 0, invoice.company_currency_code || 'INR')}</p>}
         <div className="invoice-pdf-viewer" aria-live="polite">
           {loadingPdf ? <p className="muted-text">Loading PDF preview...</p> : null}
           {!loadingPdf && pdfError ? <p className="error-text">{pdfError}</p> : null}

@@ -49,6 +49,7 @@ from src.schemas.quotation import (
     QuotationUpdate,
 )
 from src.services.company_access import company_scope
+from src.services.sales_tcs import prepare_tcs, copy_tcs_input
 from src.services.document_totals import apply_discount_and_round_off, require_money_fits, snapshot_company_fields
 from src.services.financial_year import get_active_fy, get_fy_for_date
 from src.services.gst_tax_service import (
@@ -245,6 +246,8 @@ def _apply_payload(
     processor = InvoiceProcessor(db)
     ledger = processor.require_ledger(payload.ledger_id, company.id)
 
+    tcs_override = prepare_tcs(db, quotation, payload, company, ledger, quotation.quotation_date)
+    quotation.ledger_pan = ledger.pan
     quotation.ledger_id = ledger.id
     quotation.ledger_name = ledger.name
     quotation.ledger_address = ledger.address
@@ -299,6 +302,7 @@ def _apply_payload(
         _money(taxable_total + tax_total),
         payload.discount_type,
         payload.discount_value,
+        tcs_override=tcs_override,
     )
     require_money_fits(
         "The total of this document",
@@ -418,6 +422,7 @@ def duplicate_quotation(db: Session, original: Quotation, *, created_by: int, co
             address=original.shipping_address,
         )
     fields = {
+        **copy_tcs_input(db, original, today),
         "ledger_id": original.ledger_id,
         "document_type": original.document_type,
         "quotation_date": today,
@@ -712,6 +717,7 @@ def build_conversion_draft(db: Session, quotation: Quotation, *, company: Compan
         reference = f"{quotation.reference_notes} ({reference})"
 
     invoice = QuotationConvert(
+        **copy_tcs_input(db, quotation, today),
         quotation_updated_at=quotation.updated_at,
         ledger_id=quotation.ledger_id,
         voucher_type="sales",

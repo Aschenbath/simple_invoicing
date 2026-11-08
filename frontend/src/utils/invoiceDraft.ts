@@ -19,6 +19,8 @@ export type InvoiceDraftItem = {
 };
 
 export type InvoiceDraft = {
+  tcsSectionId?: string;
+  tcsAmount?: string;
   ledgerId: string;
   voucherType: string;
   taxInclusive: boolean;

@@ -8,6 +8,7 @@ export type InvoiceTotalLine = {
 };
 
 type Discount = { type?: string; value?: number };
+export type TcsCalculation = { rate: number; base: 'gross' | 'taxable'; amount?: number | null };
 
 /** ROUND_HALF_UP, including negative values; tolerate binary error at a tie. */
 export function roundMoney(value: number): number {
@@ -60,8 +61,10 @@ export function computeInvoiceTotals(lines: InvoiceTotalLine[], {
   invoiceDiscount = {},
   applyRoundOff = false,
   interstateSupply = true,
+  tcs,
 }: {
   taxInclusive: boolean; invoiceDiscount?: Discount; applyRoundOff?: boolean; interstateSupply?: boolean;
+  tcs?: TcsCalculation;
 }) {
   const calculated = lines.map((line) => computeLineTotal({ ...line, taxInclusive, interstateSupply }));
   const taxableAmount = roundMoney(calculated.reduce((sum, line) => sum + line.taxableAmount, 0));
@@ -69,11 +72,15 @@ export function computeInvoiceTotals(lines: InvoiceTotalLine[], {
   const totalAmount = roundMoney(taxableAmount + taxAmount);
   const invoiceDiscountAmount = Math.min(discountAmount(totalAmount, invoiceDiscount), totalAmount);
   const afterDiscountTotal = roundMoney(totalAmount - invoiceDiscountAmount);
+  const tcsBaseAmount = tcs ? (tcs.base === 'gross' ? afterDiscountTotal : Math.max(0, roundMoney(taxableAmount - invoiceDiscountAmount))) : 0;
+  const tcsAmount = tcs ? roundMoney(tcs.amount ?? tcsBaseAmount * tcs.rate / 100) : 0;
+  const afterTcsTotal = roundMoney(afterDiscountTotal + tcsAmount);
   const total = applyRoundOff
-    ? Math.sign(afterDiscountTotal) * Math.round(Math.abs(afterDiscountTotal))
-    : afterDiscountTotal;
+    ? Math.sign(afterTcsTotal) * Math.round(Math.abs(afterTcsTotal))
+    : afterTcsTotal;
   return {
     taxableAmount, taxAmount, totalAmount, invoiceDiscountAmount, afterDiscountTotal,
-    roundOffAmount: roundMoney(total - afterDiscountTotal), total,
+    ...(tcs ? { tcsBaseAmount, tcsAmount } : {}),
+    roundOffAmount: roundMoney(total - afterTcsTotal), total,
   };
 }

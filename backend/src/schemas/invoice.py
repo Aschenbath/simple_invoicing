@@ -1,3 +1,5 @@
+from src.schemas.tcs import TcsInput, TcsOut
+
 from datetime import date, datetime
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from typing import List, Literal, Optional
@@ -67,7 +69,7 @@ class InvoiceItemCreate(BaseModel):
     serial_numbers: list[str] | None = None
 
 
-class InvoiceCreate(BaseModel):
+class InvoiceCreate(TcsInput):
     ledger_id: int
     voucher_type: Literal["sales", "purchase"] = "sales"
     invoice_date: Optional[date] = None
@@ -122,7 +124,7 @@ class InvoiceItemOut(BaseModel):
         from_attributes = True
 
 
-class InvoiceOut(BaseModel):
+class InvoiceOut(TcsOut):
     id: int
     invoice_number: str | None = None
     ledger_id: int | None = None
