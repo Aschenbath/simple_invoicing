@@ -4,12 +4,14 @@ import type { CompanyAccount, OutstandingInvoice, Payment, PaymentCreate, Paymen
 import { fetchOutstandingInvoices } from '../features/invoices/api';
 import formatCurrency from '../utils/formatting';
 import { formatInvoiceDateLabel } from '../utils/invoiceDueDate';
-import { remainingAmount } from '../utils/validateAllocations';
+import { remainingAmount, validateAllocations } from '../utils/validateAllocations';
 import EmptyState from './EmptyState';
 import ModalCloseButton from './ModalCloseButton';
 import { useFY } from '../context/FYContext';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import { toLocalDateTimeInput } from '../utils/dateRanges';
+import TdsAllocationFields from './TdsAllocationFields';
+import { suggestCashAllocations } from '../utils/customerTds';
 
 interface ReceiptModalProps {
   ledgerId: number;
@@ -24,18 +26,6 @@ interface ReceiptModalProps {
 
 function sumAllocatedAmount(allocations: PaymentInvoiceAllocation[] | undefined): number {
   return (allocations ?? []).reduce((total, allocation) => total + Number(allocation.allocated_amount || 0), 0);
-}
-
-function buildSuggestedAllocations(invoices: OutstandingInvoice[]): PaymentInvoiceAllocation[] {
-  return invoices
-    .filter((invoice) => (invoice.suggested_allocation_amount || 0) > 0)
-    .map((invoice) => ({
-      invoice_id: invoice.id,
-      invoice_number: invoice.invoice_number,
-      invoice_date: invoice.invoice_date,
-      due_date: invoice.due_date,
-      allocated_amount: invoice.suggested_allocation_amount || 0,
-    }));
 }
 
 function upsertAllocation(
@@ -161,6 +151,8 @@ export default function ReceiptModal({
       onError('Amount must be greater than 0');
       return;
     }
+    const allocationError = validateAllocations(form.invoice_allocations, form.amount);
+    if (allocationError) { onError(allocationError); return; }
     try {
       setSubmitting(true);
       const res = await api.post<Payment>('/payments/', form);
@@ -304,7 +296,7 @@ export default function ReceiptModal({
                 <button
                   type="button"
                   className="button button--secondary button--small"
-                  onClick={() => { followAmount.current = false; setForm((f) => ({ ...f, invoice_allocations: buildSuggestedAllocations(outstandingInvoices) })); }}
+                  onClick={() => { followAmount.current = false; setForm((f) => ({ ...f, invoice_allocations: suggestCashAllocations(outstandingInvoices, f.amount, f.invoice_allocations) })); }}
                   disabled={loadingOutstanding || outstandingInvoices.length === 0 || form.amount <= 0}
                 >
                   Auto Select Oldest
@@ -386,7 +378,7 @@ export default function ReceiptModal({
                                 id={`rcpt-allocation-${invoice.id}`}
                                 className="input"
                                 type="number"
-                                min="0.01"
+                                min={existingAllocation?.tds_amount ? "0" : "0.01"}
                                 step="0.01"
                                 value={existingAllocation?.allocated_amount || ''}
                                 onChange={(event) => {
@@ -397,6 +389,11 @@ export default function ReceiptModal({
                               />
                             </div>
                           ) : null}
+                          {existingAllocation ? <TdsAllocationFields invoice={invoice} allocation={existingAllocation}
+                            currencyCode={currencyCode} onChange={(next) => {
+                              followAmount.current = false;
+                              setForm((f) => ({ ...f, invoice_allocations: (f.invoice_allocations ?? []).map((row) => row.invoice_id === next.invoice_id ? next : row) }));
+                            }} /> : null}
                         </div>
                       </div>
                     );

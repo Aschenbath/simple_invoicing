@@ -44,6 +44,7 @@ class CompanyProfileBase(BaseModel):
     eway_interstate_threshold: float = Field(default=50000, ge=0, le=9999999999.99)
     eway_always_show_button: bool = True
     show_pay_qr_on_invoice: bool = False
+    enable_customer_tds: bool = False
     show_upi_pay_button: bool = False
 
 

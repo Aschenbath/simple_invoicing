@@ -28,8 +28,8 @@ from src.mcp_server.schema import (
 )
 
 # Measured against the real spec on 2026-09-08.
-EXPECTED_OPERATIONS = 172  # Includes GET /api/tax-withholding-sections
-EXPECTED_TOOLS = 150  # generated only; `search` and `fetch` are added on top
+EXPECTED_OPERATIONS = 174  # Includes the TDS receivable report and CSV
+EXPECTED_TOOLS = 152  # generated only; `search` and `fetch` are added on top
 # The /api/quotations routes added ten operations and ten tools, and the GSTR-3B
 # worksheet three of each.
 # GET /api/invoices/dues/ageing added one operation and one tool.

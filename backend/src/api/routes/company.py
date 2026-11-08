@@ -89,6 +89,7 @@ def _create_company_profile(db: Session, payload: CompanyProfileUpdate) -> Compa
         eway_interstate_threshold=payload.eway_interstate_threshold,
         eway_always_show_button=payload.eway_always_show_button,
         show_pay_qr_on_invoice=payload.show_pay_qr_on_invoice,
+        enable_customer_tds=payload.enable_customer_tds,
         show_upi_pay_button=payload.show_upi_pay_button,
     )
     db.add(profile)
@@ -195,6 +196,7 @@ def _company_to_out(company: CompanyProfile) -> CompanyProfileOut:
         eway_interstate_threshold=company.eway_interstate_threshold,
         eway_always_show_button=company.eway_always_show_button,
         show_pay_qr_on_invoice=company.show_pay_qr_on_invoice,
+        enable_customer_tds=company.enable_customer_tds,
         show_upi_pay_button=company.show_upi_pay_button,
         terms=[
             CompanyTermOut(
@@ -402,6 +404,7 @@ def upsert_company_profile(
         if field in payload.model_fields_set:
             setattr(profile, field, getattr(payload, field))
     profile.show_pay_qr_on_invoice = payload.show_pay_qr_on_invoice
+    profile.enable_customer_tds = payload.enable_customer_tds
     profile.show_upi_pay_button = payload.show_upi_pay_button
     db.commit()
     db.refresh(profile)

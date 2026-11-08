@@ -161,6 +161,7 @@ export const PRIMARY_NAV: NavEntry[] = [
     children: [
       { to: '/analytics', label: 'Analytics', icon: ChartColumn, shortcutAction: 'open_reports' },
       { to: '/day-book', label: 'Day Book', icon: BookOpen, shortcutAction: 'go_day_book' },
+      { to: '/tds-receivable', label: 'TDS Receivable', icon: Percent },
       { to: '/tax-ledger', label: 'Tax Ledger', icon: Percent, shortcutAction: 'go_tax_ledger' },
       // Was the second tab of /tax-ledger. A three-step filing wizard is a
       // destination, not a view of the ledger beside it — and buried in a tab

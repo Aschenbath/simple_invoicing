@@ -14,7 +14,7 @@ from src.models.company import CompanyProfile
 from src.models.financial_year import FinancialYear
 from src.models.payment import Payment, PaymentInvoiceAllocation
 from src.models.user import User, UserRole
-from src.schemas.payment import PaymentCreate, PaymentOut, PaymentUpdate
+from src.schemas.payment import PaymentCreate, PaymentOut, PaymentUpdate, PaymentInvoiceAllocationOut
 from src.services.series import generate_next_number
 from src.services.financial_year import get_active_fy, get_fy_for_date
 from src.services.invoice_payments import sync_payment_allocations
@@ -43,14 +43,19 @@ def _to_payment_out(payment: Payment) -> PaymentOut:
         result.account_display_name = payment.account.display_name
         result.account_type = payment.account.account_type
     result.invoice_allocations = [
-        {
+        PaymentInvoiceAllocationOut.model_validate({
             "id": allocation.id,
             "invoice_id": allocation.invoice_id,
             "invoice_number": allocation.invoice.invoice_number if allocation.invoice else None,
             "invoice_date": allocation.invoice.invoice_date if allocation.invoice else None,
             "due_date": allocation.invoice.due_date if allocation.invoice else None,
             "allocated_amount": float(allocation.allocated_amount or 0),
-        }
+            "tds_amount": float(allocation.tds_amount or 0),
+            "tds_section_id": allocation.tds_section_id,
+            "tds_section_ref": allocation.tds_section_ref,
+            "tds_rate": allocation.tds_rate,
+            "tds_base_amount": allocation.tds_base_amount,
+        })
         for allocation in payment.invoice_allocations
     ]
     return result

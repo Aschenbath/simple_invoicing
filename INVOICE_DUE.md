@@ -25,6 +25,7 @@ The backend already stores `invoices.due_date` as a nullable field.
 Invoice responses now also expose derived collection fields:
 
 - `paid_amount`
+- `tds_amount` (customer tax withheld, separate from cash paid)
 - `remaining_amount`
 - `outstanding_amount`
 - `payment_status`
@@ -40,6 +41,26 @@ Receipt and payment entries can be allocated against invoices through `payment_i
 - Partial allocations are allowed.
 - Oldest invoices can be auto-selected through backend suggestions.
 - Editing an existing payment reloads outstanding invoices while excluding the current payment from the outstanding calculation.
+
+## Customer TDS
+
+Enable **TDS deducted by customers** in company settings to add optional TDS
+fields to each sales invoice allocation on receipts. Choose a section valid on
+the invoice date; the suggestion uses the customer's PAN and party type and the
+invoice's taxable amount before GST. Enter the amount actually withheld if it
+differs. The receipt amount is always cash received.
+
+Remaining = invoice total − credit notes − allocated cash − TDS. TDS appears as
+a separate credit on the customer statement, including PDF, CSV and public share
+copies, and is excluded from cash/bank balances and the day book. Editing or
+cancelling a receipt updates its deductions. Existing deductions remain editable
+after disabling the setting; historical section, rate and base snapshots are kept.
+
+**Reports → TDS Receivable** groups deductions by invoice, section and customer
+and exports CSV for matching against Form 26AS/AIS. Filter by April–March tax year
+and quarter, using the invoice date even when payment arrives later. Multiple
+receipts appear on one invoice row with their individual dates and tax snapshots.
+TDS on advances without an invoice and certificate tracking are not supported.
 
 ## Dues Page Filters
 

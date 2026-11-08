@@ -297,6 +297,8 @@ def _build_statement_html(
             if entry.reference_number
             else f"{_e(entry.voucher_type)} #{entry.entry_id}".strip()
         )
+        if entry.entry_type == "tds":
+            ref_number = f"TDS · {ref_number}"
         note = f'<span class=\"entry-note\">{_e(entry.notes)}</span>' if entry.notes else ""
         ref = f' &middot; Ref: {_e(entry.payment_reference)}' if entry.payment_reference else ""
         entry_rows += f"""

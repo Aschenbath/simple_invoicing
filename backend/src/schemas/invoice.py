@@ -161,6 +161,7 @@ class InvoiceOut(BaseModel):
     total_amount: float
     invoice_date: datetime
     due_date: datetime | None = None
+    tds_amount: float = 0
     paid_amount: float = 0
     remaining_amount: float = 0
     outstanding_amount: float = 0
@@ -224,18 +225,30 @@ class DuesAgeingOut(BaseModel):
     total_remaining: float
 
 
+class TdsOption(BaseModel):
+    id: int
+    section_ref: str
+    legacy_code: str | None = None
+    nature: str
+    rate: float
+    amount: float
+
+
 class OutstandingInvoiceOut(BaseModel):
     id: int
     invoice_number: str | None = None
     invoice_date: datetime
     due_date: datetime | None = None
     total_amount: float
+    tds_amount: float = 0
     paid_amount: float = 0
     remaining_amount: float = 0
     outstanding_amount: float = 0
     payment_status: str = "unpaid"
     due_in_days: int | None = None
     suggested_allocation_amount: float | None = None
+    tds_enabled: bool = False
+    tds_options: list[TdsOption] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

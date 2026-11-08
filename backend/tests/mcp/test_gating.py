@@ -150,4 +150,5 @@ def test_tool_list_stays_inside_a_sane_token_budget(mcp_call, company, writes_on
 
     monkeypatch.setattr(settings, "MCP_DEFAULT_PROFILE", "all")
     all_bytes = len(json.dumps(mcp_call.list_tools(principal=principal)).encode())
-    assert all_bytes < 150_000, f"full profile grew to {all_bytes} bytes"
+    # Allow room for the two TDS receivable tools and per-invoice TDS inputs.
+    assert all_bytes < 155_000, f"full profile grew to {all_bytes} bytes"

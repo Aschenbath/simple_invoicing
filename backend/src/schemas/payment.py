@@ -13,6 +13,8 @@ class PaymentInvoiceAllocationCreate(BaseModel):
     # Non-finite / out-of-range values blow Numeric(10,2) and break the payments list.
     # The cutoff accounts for PostgreSQL rounding before the overflow check.
     allocated_amount: float = Field(lt=MONEY_STORAGE_CUTOFF, allow_inf_nan=False)
+    tds_amount: float = Field(default=0, ge=0, lt=MONEY_STORAGE_CUTOFF, allow_inf_nan=False)
+    tds_section_id: int | None = None
 
 
 class PaymentInvoiceAllocationOut(BaseModel):
@@ -22,6 +24,11 @@ class PaymentInvoiceAllocationOut(BaseModel):
     invoice_date: datetime | None = None
     due_date: datetime | None = None
     allocated_amount: float
+    tds_amount: float = 0
+    tds_section_id: int | None = None
+    tds_section_ref: str | None = None
+    tds_rate: float | None = None
+    tds_base_amount: float | None = None
 
     class Config:
         from_attributes = True

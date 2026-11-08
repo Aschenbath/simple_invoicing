@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey, UniqueConstraint, text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from src.db.base import Base
@@ -40,6 +40,11 @@ class PaymentInvoiceAllocation(Base):
     payment_id = Column(Integer, ForeignKey("payments.id"), nullable=False)
     invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=False)
     allocated_amount = Column(Numeric(10, 2), nullable=False)
+    tds_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default=text("0"))
+    tds_section_id = Column(Integer, ForeignKey("tax_withholding_sections.id"), nullable=True)
+    tds_section_ref = Column(String(64), nullable=True)
+    tds_rate = Column(Numeric(7, 3), nullable=True)
+    tds_base_amount = Column(Numeric(10, 2), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     payment = relationship("Payment", back_populates="invoice_allocations")

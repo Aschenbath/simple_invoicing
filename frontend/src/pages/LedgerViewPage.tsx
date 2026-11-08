@@ -23,6 +23,8 @@ import { formatInvoiceDateLabel } from '../utils/invoiceDueDate.ts';
 import EmptyState from '../components/EmptyState';
 import LedgerPhoneLinks from '../components/LedgerPhoneLinks';
 import { toIsoDate, toLocalDateTimeInput } from '../utils/dateRanges';
+import TdsAllocationFields from '../components/TdsAllocationFields';
+import { suggestCashAllocations } from '../utils/customerTds';
 
 function defaultDateRange() {
   const today = new Date();
@@ -59,18 +61,6 @@ function createDefaultEditPaymentForm(): PaymentUpdate {
 
 function sumAllocatedAmount(allocations: PaymentInvoiceAllocation[] | undefined): number {
   return (allocations ?? []).reduce((total, allocation) => total + Number(allocation.allocated_amount || 0), 0);
-}
-
-function buildSuggestedAllocations(invoices: OutstandingInvoice[]): PaymentInvoiceAllocation[] {
-  return invoices
-    .filter((invoice) => (invoice.suggested_allocation_amount || 0) > 0)
-    .map((invoice) => ({
-      invoice_id: invoice.id,
-      invoice_number: invoice.invoice_number,
-      invoice_date: invoice.invoice_date,
-      due_date: invoice.due_date,
-      allocated_amount: invoice.suggested_allocation_amount || 0,
-    }));
 }
 
 function upsertAllocation(
@@ -403,7 +393,7 @@ export default function LedgerViewPage() {
           <button
             type="button"
             className="button button--secondary button--small"
-            onClick={() => input.onChange(buildSuggestedAllocations(input.outstanding))}
+            onClick={() => input.onChange(suggestCashAllocations(input.outstanding, input.amount, input.allocations))}
             disabled={input.loading || input.outstanding.length === 0 || input.amount <= 0}
           >
             Auto Select Oldest
@@ -483,7 +473,7 @@ export default function LedgerViewPage() {
                           id={`allocation-${input.title}-${invoice.id}`}
                           className="input"
                           type="number"
-                          min="0.01"
+                          min={existingAllocation?.tds_amount ? "0" : "0.01"}
                           step="0.01"
                           value={existingAllocation?.allocated_amount || ''}
                           onChange={(event) => {
@@ -493,6 +483,9 @@ export default function LedgerViewPage() {
                         />
                       </div>
                     ) : null}
+                    {existingAllocation && input.voucherType === 'receipt' ? <TdsAllocationFields invoice={invoice}
+                      allocation={existingAllocation} currencyCode={activeCurrencyCode}
+                      onChange={(next) => input.onChange((input.allocations ?? []).map((row) => row.invoice_id === next.invoice_id ? next : row))} /> : null}
                   </div>
                 </div>
               );
@@ -556,14 +549,7 @@ export default function LedgerViewPage() {
         mode: res.data.mode || '',
         reference: res.data.reference || '',
         notes: res.data.notes || '',
-        invoice_allocations: (res.data.invoice_allocations ?? []).map((allocation) => ({
-          id: allocation.id,
-          invoice_id: allocation.invoice_id,
-          invoice_number: allocation.invoice_number,
-          invoice_date: allocation.invoice_date,
-          due_date: allocation.due_date,
-          allocated_amount: allocation.allocated_amount,
-        })),
+        invoice_allocations: (res.data.invoice_allocations ?? []).map((allocation) => ({ ...allocation })),
       });
     } catch (err) {
       setError(getApiErrorMessage(err, 'Unable to load payment'));
@@ -1040,6 +1026,8 @@ export default function LedgerViewPage() {
                       >
                         View
                       </button>
+                    ) : entry.entry_type === 'tds' ? (
+                      <button type="button" className="button button--ghost button--small" onClick={() => void handleLoadEditPayment(entry.entry_id)}>Edit receipt</button>
                     ) : entry.voucher_type === 'Opening Balance' ? (
                       <button
                         type="button"

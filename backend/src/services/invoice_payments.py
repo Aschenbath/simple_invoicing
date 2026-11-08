@@ -10,6 +10,7 @@ from src.models.credit_note import CreditNote, CreditNoteItem
 from src.models.invoice import Invoice
 from src.models.payment import Payment, PaymentInvoiceAllocation
 from src.services.company_access import company_scope
+from src.services.customer_tds import allocation_tds_snapshot
 
 
 @dataclass
@@ -21,6 +22,7 @@ class InvoicePaymentSummary:
     outstanding_amount: float
     payment_status: str
     due_in_days: int | None
+    tds_amount: float = 0
 
 
 def _money(value: Decimal) -> Decimal:
@@ -49,12 +51,15 @@ def _payment_totals_by_invoice(
     invoice_ids: list[int],
     *,
     exclude_payment_id: int | None = None,
+    tds: bool = False,
 ) -> dict[int, Decimal]:
     if not invoice_ids:
         return {}
 
     query = (
-        db.query(PaymentInvoiceAllocation.invoice_id, func.coalesce(func.sum(PaymentInvoiceAllocation.allocated_amount), 0))
+        db.query(PaymentInvoiceAllocation.invoice_id, func.coalesce(func.sum(
+            PaymentInvoiceAllocation.tds_amount if tds else PaymentInvoiceAllocation.allocated_amount
+        ), 0))
         .join(Payment, Payment.id == PaymentInvoiceAllocation.payment_id)
         .filter(
             Payment.status == "active",
@@ -80,6 +85,7 @@ def build_invoice_payment_summaries(
     invoice_ids = [invoice.id for invoice in invoices]
     credit_totals = _credit_totals_by_invoice(db, invoice_ids)
     payment_totals = _payment_totals_by_invoice(db, invoice_ids, exclude_payment_id=exclude_payment_id)
+    tds_totals = _payment_totals_by_invoice(db, invoice_ids, exclude_payment_id=exclude_payment_id, tds=True)
     today = date.today()
 
     summaries: dict[int, InvoicePaymentSummary] = {}
@@ -87,13 +93,14 @@ def build_invoice_payment_summaries(
         total_amount = _money(Decimal(str(invoice.total_amount or 0)))
         credited_amount = credit_totals.get(invoice.id, Decimal("0.00"))
         paid_amount = payment_totals.get(invoice.id, Decimal("0.00"))
-        remaining_amount = _money(total_amount - credited_amount - paid_amount)
+        tds_amount = tds_totals.get(invoice.id, Decimal("0.00"))
+        remaining_amount = _money(total_amount - credited_amount - paid_amount - tds_amount)
         if remaining_amount < 0:
             remaining_amount = Decimal("0.00")
 
         if remaining_amount <= 0:
             payment_status = "paid"
-        elif paid_amount > 0:
+        elif paid_amount + tds_amount > 0:
             payment_status = "partial"
         else:
             payment_status = "unpaid"
@@ -110,6 +117,7 @@ def build_invoice_payment_summaries(
             outstanding_amount=float(remaining_amount),
             payment_status=payment_status,
             due_in_days=due_in_days,
+            tds_amount=float(tds_amount),
         )
 
     return summaries
@@ -242,7 +250,8 @@ def validate_payment_allocations(
     invoices_query = db.query(Invoice).filter(Invoice.id.in_(invoice_ids))
     if company_id is not None:
         invoices_query = invoices_query.filter(company_scope(Invoice.company_id, company_id))
-    invoices = invoices_query.all()
+    # Serialise settlement checks for concurrent receipts against the same bill.
+    invoices = invoices_query.order_by(Invoice.id).with_for_update().all()
     invoice_map = {invoice.id: invoice for invoice in invoices}
     missing_ids = sorted(set(invoice_ids) - set(invoice_map))
     if missing_ids:
@@ -266,12 +275,15 @@ def validate_payment_allocations(
             )
 
         allocated_amount = _money(Decimal(str(allocation.allocated_amount)))
-        if allocated_amount <= 0:
+        tds_amount = _money(Decimal(str(getattr(allocation, "tds_amount", 0) or 0)))
+        if tds_amount < 0 or (tds_amount > 0 and voucher_type != "receipt"):
+            raise HTTPException(status_code=400, detail="TDS is only supported on customer receipts")
+        if allocated_amount < 0 or allocated_amount + tds_amount <= 0:
             raise HTTPException(status_code=400, detail="Allocated amounts must be greater than zero")
 
         summary = summaries[invoice.id]
         available_amount = _money(Decimal(str(summary.remaining_amount)))
-        if allocated_amount > available_amount:
+        if allocated_amount + tds_amount > available_amount:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invoice {invoice.invoice_number or invoice.id} only has {float(available_amount):.2f} remaining",
@@ -304,13 +316,20 @@ def sync_payment_allocations(
         company_id=company_id,
     )
 
+    existing_by_invoice = {row.invoice_id: row for row in payment.invoice_allocations}
+    snapshots = [
+        allocation_tds_snapshot(db, payment, invoice, allocation, existing_by_invoice.get(invoice.id))
+        for (invoice, _), allocation in zip(normalized, invoice_allocations or [])
+    ]
+
     for existing_allocation in list(payment.invoice_allocations):
         db.delete(existing_allocation)
     db.flush()
 
-    for invoice, allocated_amount in normalized:
+    for (invoice, allocated_amount), snapshot in zip(normalized, snapshots):
         db.add(PaymentInvoiceAllocation(
             payment_id=payment.id,
             invoice_id=invoice.id,
             allocated_amount=float(allocated_amount),
+            **snapshot,
         ))

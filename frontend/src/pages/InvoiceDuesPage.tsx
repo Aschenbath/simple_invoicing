@@ -472,6 +472,7 @@ export default function InvoiceDuesPage() {
                         Status {invoice.payment_status}
                         {' · '}
                         Remaining {formatCurrency(invoice.outstanding_amount, invoice.company_currency_code || currencyCode)}
+                        {invoice.tds_amount ? ` · TDS settled ${formatCurrency(invoice.tds_amount, invoice.company_currency_code || currencyCode)}` : ''}
                       </span>
                       {(invoice.ledger_payable_amount ?? 0) > 0 ? (
                         <span className="table-subtext">

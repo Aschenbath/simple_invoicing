@@ -228,6 +228,7 @@ export type CompanyProfile = {
   eway_interstate_threshold: number;
   eway_always_show_button: boolean;
   show_pay_qr_on_invoice: boolean;
+  enable_customer_tds?: boolean;
   show_upi_pay_button: boolean;
 };
 
@@ -278,6 +279,7 @@ export type CompanyProfileUpdate = {
   eway_interstate_threshold?: number;
   eway_always_show_button?: boolean;
   show_pay_qr_on_invoice?: boolean;
+  enable_customer_tds?: boolean;
   show_upi_pay_button?: boolean;
 };
 
@@ -373,6 +375,7 @@ export type Invoice = {
   total_amount: number;
   invoice_date: string;
   due_date: string | null;
+  tds_amount?: number;
   paid_amount: number;
   remaining_amount: number;
   outstanding_amount: number;
@@ -396,12 +399,15 @@ export type OutstandingInvoice = {
   invoice_date: string;
   due_date: string | null;
   total_amount: number;
+  tds_amount?: number;
   paid_amount: number;
   remaining_amount: number;
   outstanding_amount: number;
   payment_status: 'unpaid' | 'partial' | 'paid';
   due_in_days: number | null;
   suggested_allocation_amount: number | null;
+  tds_enabled?: boolean;
+  tds_options?: TdsOption[];
 };
 
 export type InvoiceItem = {
@@ -636,7 +642,7 @@ export type InvoiceCreate = {
 
 export type LedgerStatementEntry = {
   entry_id: number;
-  entry_type: 'invoice' | 'payment' | 'credit_note';
+  entry_type: 'invoice' | 'payment' | 'credit_note' | 'tds';
   date: string;
   voucher_type: string;
   reference_number?: string | null;
@@ -834,6 +840,15 @@ export type Gstr1Summary = {
 
 export type PaymentVoucherType = 'receipt' | 'payment' | 'opening_balance';
 
+export type TdsOption = {
+  id: number;
+  section_ref: string;
+  legacy_code: string | null;
+  nature: string;
+  rate: number;
+  amount: number;
+};
+
 export type PaymentInvoiceAllocation = {
   id?: number | null;
   invoice_id: number;
@@ -841,6 +856,11 @@ export type PaymentInvoiceAllocation = {
   invoice_date?: string | null;
   due_date?: string | null;
   allocated_amount: number;
+  tds_amount?: number;
+  tds_section_id?: number | null;
+  tds_section_ref?: string | null;
+  tds_rate?: number | null;
+  tds_base_amount?: number | null;
 };
 
 export type Payment = {

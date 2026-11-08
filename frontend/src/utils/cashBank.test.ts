@@ -102,3 +102,12 @@ test('account only edit keeps the account type as its mode', () => {
   expect(payload.reference).toBeUndefined();
   expect(payload).not.toHaveProperty('invoice_allocations');
 });
+
+
+test('customer TDS never increases the cash or bank balance', () => {
+  const receipt = {
+    voucher_type: 'receipt' as const, amount: 108000, account_id: 3, date: '2026-03-31',
+    invoice_allocations: [{ invoice_id: 1, allocated_amount: 108000, tds_amount: 10000 }],
+  };
+  expect(openingBalanceAt(0, [receipt], 3, periodStart)).toBe(108000);
+});

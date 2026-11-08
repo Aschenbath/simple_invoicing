@@ -770,6 +770,12 @@ def build_share_summary(db: Session, link: ShareLink) -> ShareSummary | None:
         )
         return ShareSummary(
             title="Account Statement",
+            document_note=(
+                "TDS credited in this period: " + _fmt_currency(
+                    sum(entry.credit for entry in statement_data.entries if entry.entry_type == "tds"), currency
+                )
+                if any(entry.entry_type == "tds" for entry in statement_data.entries) else None
+            ),
             party_name=ledger.name or "",
             company_name=company_name,
             amount_label=_fmt_currency(abs(closing), currency) + suffix,

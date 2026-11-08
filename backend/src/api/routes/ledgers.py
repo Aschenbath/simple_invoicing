@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 import weasyprint
+from src.services.customer_tds import tds_options
 from src.services.pdf_render import safe_url_fetcher
 
 from src.api.deps import get_active_company, get_current_user, require_company_role
@@ -25,6 +26,7 @@ from src.models.invoice import Invoice
 from src.models.invoice import InvoiceItem
 from src.models.ledger_address import LedgerAddress
 from src.models.payment import Payment, PaymentInvoiceAllocation
+from src.models.tax_withholding_section import TaxWithholdingSection
 from src.models.product import Product
 from src.models.quotation import Quotation
 from src.models.user import User, UserRole
@@ -192,7 +194,7 @@ def _ledger_balances(
 ) -> dict[int, float]:
   """Closing balance (debit - credit) per ledger, to date.
 
-  Mirrors the debit/credit sides of `_build_ledger_statement_data` but as three
+  Mirrors the debit/credit sides of `_build_ledger_statement_data` but as
   grouped aggregates instead of a per-ledger statement build, so a page of
   ledgers costs a constant number of queries.
   """
@@ -249,6 +251,17 @@ def _ledger_balances(
     )
   for ledger_id, purchase_credit_total, sales_credit_total in credit_note_rows.group_by(CreditNote.ledger_id).all():
     balances[ledger_id] = balances.get(ledger_id, 0.0) + float(purchase_credit_total) - float(sales_credit_total)
+
+  tds_rows = (
+    _active_payments_query(db, company_id=company_id)
+    .join(PaymentInvoiceAllocation, PaymentInvoiceAllocation.payment_id == Payment.id)
+    .with_entities(Payment.ledger_id, func.sum(PaymentInvoiceAllocation.tds_amount))
+    .filter(Payment.ledger_id.in_(ledger_ids), Payment.voucher_type == "receipt")
+    .group_by(Payment.ledger_id)
+    .all()
+  )
+  for ledger_id, tds_total in tds_rows:
+    balances[ledger_id] -= float(tds_total or 0)
 
   return balances
 
@@ -378,6 +391,14 @@ def _build_ledger_statement_data(
         .one()
     )
 
+    opening_tds = (
+        _active_payments_query(db, company_id=company_id)
+        .join(PaymentInvoiceAllocation, PaymentInvoiceAllocation.payment_id == Payment.id)
+        .with_entities(func.coalesce(func.sum(PaymentInvoiceAllocation.tds_amount), 0))
+        .filter(Payment.ledger_id == ledger.id, Payment.voucher_type == "receipt", Payment.date < period_start)
+        .scalar()
+    )
+
     opening_credit_note_summary = get_credit_note_ledger_summary(
         db,
         ledger_id=ledger.id,
@@ -468,6 +489,21 @@ def _build_ledger_statement_data(
             notes=payment.notes,
             invoice_allocations=entry_allocations,
         ))
+        if payment.voucher_type == "receipt":
+            for allocation in payment.invoice_allocations:
+                if not allocation.tds_amount:
+                    continue
+                entries.append(LedgerStatementEntry(
+                    entry_id=payment.id,
+                    entry_type="tds",
+                    date=payment.date,
+                    voucher_type="TDS",
+                    reference_number=payment.payment_number,
+                    particulars=f"TDS deducted, s.{allocation.tds_section_ref}"
+                        + f" · {allocation.invoice.invoice_number or allocation.invoice_id}",
+                    debit=0,
+                    credit=float(allocation.tds_amount),
+                ))
     for credit_note_entry in period_credit_note_summary.entries:
         entries.append(LedgerStatementEntry(
             entry_id=credit_note_entry.entry_id,
@@ -484,7 +520,7 @@ def _build_ledger_statement_data(
     period_debit = sum(entry.debit for entry in entries)
     period_credit = sum(entry.credit for entry in entries)
     opening_debit = float(opening_totals[0]) + float(opening_payment_totals[0]) + float(opening_payment_totals[2]) + opening_credit_note_summary.purchase_credit_total
-    opening_credit = float(opening_totals[1]) + float(opening_payment_totals[1]) + float(opening_payment_totals[3]) + opening_credit_note_summary.sales_credit_total
+    opening_credit = float(opening_totals[1]) + float(opening_payment_totals[1]) + float(opening_payment_totals[3]) + opening_credit_note_summary.sales_credit_total + float(opening_tds)
     opening_balance = opening_debit - opening_credit
     closing_balance = opening_balance + period_debit - period_credit
 
@@ -1133,6 +1169,8 @@ def list_unpaid_invoices(
         company_id=company_id,
     )
     suggestions = auto_allocate_outstanding_invoices(rows, amount) if amount is not None else {}
+    tds_enabled = bool(getattr(active_company, "enable_customer_tds", False)) and voucher_type == "receipt"
+    sections = db.query(TaxWithholdingSection).filter(TaxWithholdingSection.kind == "tds").all() if tds_enabled else []
 
     return [
         OutstandingInvoiceOut(
@@ -1141,12 +1179,15 @@ def list_unpaid_invoices(
             invoice_date=invoice.invoice_date,
             due_date=invoice.due_date,
             total_amount=float(invoice.total_amount or 0),
+            tds_amount=summary.tds_amount,
             paid_amount=summary.paid_amount,
             remaining_amount=summary.remaining_amount,
             outstanding_amount=summary.outstanding_amount,
             payment_status=summary.payment_status,
             due_in_days=summary.due_in_days,
             suggested_allocation_amount=suggestions.get(invoice.id),
+            tds_enabled=tds_enabled,
+            tds_options=tds_options(sections, invoice, ledger),
         )
         for invoice, summary in rows
     ]
