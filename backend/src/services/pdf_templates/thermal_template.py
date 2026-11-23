@@ -230,7 +230,7 @@ def _build_thermal_html(doc: ThermalDoc, width_mm: int) -> str:
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   html, body {{ color: #000; background: #fff; }}
   body {{
-    font-family: 'DejaVu Sans', Arial, sans-serif;
+    font-family: 'DejaVu Sans', Arial, 'Noto Sans', 'Noto Sans Devanagari', sans-serif;
     font-size: {base_pt}pt;
     line-height: 1.3;
     padding: 3mm {side_mm}mm 5mm;

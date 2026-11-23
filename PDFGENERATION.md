@@ -68,7 +68,8 @@ apt-get install -y --no-install-recommends \
     libpangocairo-1.0-0 \
     libpangoft2-1.0-0 \
     libgdk-pixbuf2.0-0 \
-    libffi-dev
+    libffi-dev \
+    fonts-noto-core
 ```
 
 Alpine:
@@ -82,7 +83,7 @@ apk add --no-cache pango fontconfig ttf-freefont
 - `OSError: cannot load library 'libgobject-2.0-0'`:
     - Install system dependencies (`brew install pango` on macOS).
 - Missing currency symbols or glyph fallback:
-    - Install Unicode-capable fonts on host/container.
+    - Install `fonts-noto-core` on Debian/Ubuntu (included in both backend Docker images). It includes Noto Sans Devanagari for Hindi and fonts for other Indian scripts. On other hosts, install Noto Sans and Noto Sans Devanagari and restart the backend so Pango refreshes its fonts. HTML escaping preserves the text, but cannot supply missing glyphs.
 - Blank PDF output:
     - Validate generated HTML and inline CSS; run backend with debug logging.
 

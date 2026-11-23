@@ -13,6 +13,9 @@ The report routes (A4 and A5 only) are covered in test_report_pdf_paper.py.
 from __future__ import annotations
 
 import base64
+from io import BytesIO
+import shutil
+import subprocess
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -162,6 +165,33 @@ def make_invoice(count: int = 40, *, interstate: bool = False, voucher_type: str
         total_amount=t["taxable"] + t["tax"] - discount + tcs + round_off,
         **_company_snapshot(),
     )
+
+
+@pytest.mark.parametrize("paper", ["a4", "a5", "thermal80", "thermal58"])
+def test_invoice_pdf_preserves_hindi_customer_and_product_names(paper):
+    pypdf = pytest.importorskip("pypdf")
+    if not shutil.which("fc-match"):
+        pytest.skip("fontconfig is needed to check for the Hindi PDF font")
+    family = subprocess.run(
+        ["fc-match", "--format=%{family}", "Noto Sans Devanagari"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    if "Noto Sans Devanagari" not in family:
+        pytest.skip("install fonts-noto-core to exercise Hindi PDF rendering")
+
+    invoice = make_invoice(1)
+    invoice.ledger_name = 'चावल वाले "राम" & Co'
+    products = _products()
+    products[0].name = "Basmati Chawal चावल"
+    if pdf_paper.is_thermal(paper):
+        html = build_thermal_copies([thermal_invoice_doc(invoice, products)], paper)
+    else:
+        html = _build_multi_copy_invoice_html(invoice, products, [], copies=1, paper=paper)
+    pdf = render_pdf(html, paper)
+    text = "\n".join(page.extract_text() for page in pypdf.PdfReader(BytesIO(pdf)).pages)
+    assert text.count("चावल") >= 2, text
+    assert "राम" in text, text
+    assert "Basmati Chawal" in text, text
 
 
 def _accounts() -> list[CompanyAccount]:
