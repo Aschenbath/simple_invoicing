@@ -1836,6 +1836,20 @@ textarea {
   resize: vertical;
 }
 
+@media (max-width: 767px) {
+  .input,
+  .select,
+  .textarea {
+    /* Smaller text makes iOS Safari zoom the page when a field is focused. */
+    font-size: 16px;
+  }
+
+  .input,
+  .select {
+    min-height: 44px;
+  }
+}
+
 .opening-balance-group {
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(140px, 0.9fr);
