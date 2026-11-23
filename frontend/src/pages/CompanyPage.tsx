@@ -14,7 +14,7 @@ import { setupPromptChoices } from '../utils/setupPrompt';
 import { useFY } from '../context/FYContext';
 import { PAPER_LABELS } from '../utils/paper';
 import type { CompanyProfile, CompanyProfileUpdate, InvoiceSeries, InvoiceSeriesUpdate, CompanyTermOut, PdfPaper } from '../types/api';
-import { clearSetupDraft, isCompanyConfigured, isCompanyFormDirty, missingCompanyFields, readSetupDraft, writeSetupDraft, type MissingCompanyFields } from '../utils/companySetup';
+import { clearSetupDraft, companyFormCurrency, isCompanyConfigured, isCompanyFormDirty, missingCompanyFields, readSetupDraft, writeSetupDraft, type MissingCompanyFields } from '../utils/companySetup';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { isCurrencyChange } from '../utils/currencyChange';
 import { buildSeriesPreview, gstr1SeriesFormatError, parseNextSequenceInput } from '../utils/seriesPreview';
@@ -845,7 +845,7 @@ export default function CompanyPage() {
         tan: data.tan || '',
         enable_purchase_tds: data.enable_purchase_tds || false,
         phone_number: data.phone_number || '',
-        currency_code: data.currency_code || 'USD',
+        currency_code: companyFormCurrency(data.currency_code),
         email: data.email || '',
         website: data.website || '',
         show_sku_on_pdf: data.show_sku_on_pdf || false,
