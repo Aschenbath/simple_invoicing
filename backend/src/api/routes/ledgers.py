@@ -34,6 +34,7 @@ from src.schemas.invoice import OutstandingInvoiceOut
 from src.schemas.ledger import DayBookEntry, DayBookOut, Gstr1B2BInvoice, Gstr1CategorySummary, Gstr1DocSummary, Gstr1HsnSummaryItem, Gstr1JsonExport, Gstr1Summary, Gstr1ValidationError, Gstr1ValidationResult, LedgerCreate, LedgerOut, LedgerStatementEntry, LedgerStatementInvoiceAllocation, LedgerStatementOut, PaginatedLedgerOut, TaxLedgerEntry, TaxLedgerOut, TaxLedgerTotals, TaxLiability, TaxLiabilityBucket
 from src.schemas.ledger_address import LedgerAddressCreate, LedgerAddressOut, LedgerAddressUpdate
 from src.services.credit_note_reporting import get_credit_note_ledger_summary
+from src.services.credit_note_deadline import section34_warning
 from src.services.financial_year import get_active_fy
 from src.services.gst_returns.setoff import compute_setoff
 from src.services.invoice_payments import auto_allocate_outstanding_invoices, build_invoice_payment_summaries, get_outstanding_invoices_for_ledger
@@ -1993,11 +1994,13 @@ def _gstr1_period_error(from_date: date, to_date: date) -> str | None:
 
 
 def _gstr1_credit_notes(
-    db: Session, from_date: date, to_date: date, company_id: int | None, *, status: str = "active"
+    db: Session, from_date: date, to_date: date, company_id: int | None, *, status: str = "active",
+    include_expired: bool = False,
 ) -> list[CreditNote]:
     """Credit notes on our sales dated in the range, with items eagerly loaded.
 
-    Active ones by default; only Table 13 asks for the cancelled ones.
+    Eligible active ones by default; validation and Table 13 also need expired
+    commercial notes, whose numbers still belong to the issued series.
     """
     query = (
         db.query(CreditNote)
@@ -2011,12 +2014,12 @@ def _gstr1_credit_notes(
     notes = query.all()
 
     invoice_ids = {item.invoice_id for cn in notes for item in cn.items if item.invoice_id}
-    voucher_types: dict[int, str] = {}
+    sources: dict[int, Invoice] = {}
     if invoice_ids:
-        types_query = db.query(Invoice.id, Invoice.voucher_type).filter(Invoice.id.in_(invoice_ids))
+        types_query = db.query(Invoice).filter(Invoice.id.in_(invoice_ids))
         if company_id is not None:
             types_query = types_query.filter(company_scope(Invoice.company_id, company_id))
-        voucher_types = dict(types_query.all())
+        sources = {inv.id: inv for inv in types_query.all()}
 
     def _is_on_a_sale(cn: CreditNote) -> bool:
         # GSTR-1 reports outward supplies. A note against a purchase is the
@@ -2025,18 +2028,35 @@ def _gstr1_credit_notes(
         # on the Tax Ledger: migration 20260904000001 stamped every older note
         # outward, including those against purchases. With no known invoice, the
         # note's direction is all there is to go by.
-        sources = {voucher_types[item.invoice_id] for item in cn.items if item.invoice_id in voucher_types}
-        return "sales" in sources if sources else (cn.direction or "outward") == "outward"
+        types = {sources[item.invoice_id].voucher_type for item in cn.items if item.invoice_id in sources}
+        return "sales" in types if types else (cn.direction or "outward") == "outward"
 
-    return [cn for cn in notes if _is_on_a_sale(cn)]
+    return [
+        cn for cn in notes if _is_on_a_sale(cn)
+        and (include_expired or status != "active" or not _note_deadline_warnings(cn, sources))
+    ]
 
 
-def _note_invoices(db: Session, credit_notes: list[CreditNote]) -> dict[int, Invoice]:
+def _note_invoices(db: Session, credit_notes: list[CreditNote], company_id: int | None = None) -> dict[int, Invoice]:
     """The invoices these notes were raised against, by id."""
     invoice_ids = {item.invoice_id for cn in credit_notes for item in cn.items if item.invoice_id}
     if not invoice_ids:
         return {}
-    return {inv.id: inv for inv in db.query(Invoice).filter(Invoice.id.in_(invoice_ids)).all()}
+    query = db.query(Invoice).filter(Invoice.id.in_(invoice_ids))
+    if company_id is not None:
+        query = query.filter(company_scope(Invoice.company_id, company_id))
+    return {inv.id: inv for inv in query.all()}
+
+
+def _note_deadline_warnings(cn: CreditNote, invoices_by_id: dict[int, Invoice]) -> list[str]:
+    warnings = []
+    for invoice_id in sorted({item.invoice_id for item in cn.items if item.invoice_id}):
+        inv = invoices_by_id.get(invoice_id)
+        if inv is not None and inv.voucher_type == "sales":
+            warning = section34_warning(cn.credit_note_date, inv.invoice_date, inv.invoice_number or f"INV-{inv.id}")
+            if warning:
+                warnings.append(warning)
+    return warnings
 
 
 def _note_item_heads(cn: CreditNote, item: CreditNoteItem) -> tuple[float, float, float]:
@@ -2174,7 +2194,7 @@ def _note_filing_errors(cn: CreditNote, invoices_by_id: dict[int, Invoice], comp
         errors.append(("Credit Note Number", f"GSTR-1 needs a number of {GSTR1_DOCUMENT_NUMBER_RULE}"))
 
     # Only its number reaches the file, so nothing else on it can block one.
-    if _is_zero_value_note(cn):
+    if _is_zero_value_note(cn) or _note_deadline_warnings(cn, invoices_by_id):
         return errors
 
     for item in cn.items:
@@ -2749,13 +2769,18 @@ def gstr1_validate(
                 message=f"Duplicate invoice number: {num}", severity="error",
             ))
 
-    credit_notes = _gstr1_credit_notes(db, from_date, to_date, company_id)
-    invoices_by_id = _note_invoices(db, credit_notes)
+    credit_notes = _gstr1_credit_notes(db, from_date, to_date, company_id, include_expired=True)
+    invoices_by_id = _note_invoices(db, credit_notes, company_id)
     for cn in credit_notes:
         cn_num = cn.credit_note_number or f"CN-{cn.id}"
+        deadline_warnings = _note_deadline_warnings(cn, invoices_by_id)
+        for message in deadline_warnings:
+            errors.append(Gstr1ValidationError(
+                invoice_number=cn_num, field="Section 34 deadline", message=message, severity="warning",
+            ))
         for field, message in _note_filing_errors(cn, invoices_by_id, company_pos):
             errors.append(Gstr1ValidationError(invoice_number=cn_num, field=field, message=message, severity="error"))
-        if not _is_zero_value_note(cn):
+        if not _is_zero_value_note(cn) and not deadline_warnings:
             for item in cn.items:
                 off_list = _hsn_off_gst_list(_note_item_hsn(item))
                 if off_list:
@@ -2795,6 +2820,7 @@ def gstr1_validate(
             ),
         ))
 
+    credit_notes = [cn for cn in credit_notes if not _note_deadline_warnings(cn, invoices_by_id)]
     errors.extend(_negative_row_warnings(
         _b2cs_rows(filed_sales, credit_notes, invoices_by_id, company_pos),
         _hsn_section(db, filed_sales, credit_notes, invoices_by_id, to_date),
@@ -2833,7 +2859,9 @@ def gstr1_summary(
     nil_rated = Gstr1CategorySummary()
     exempt = Gstr1CategorySummary()
 
-    credit_notes = _gstr1_credit_notes(db, from_date, to_date, company_id)
+    issued_credit_notes = _gstr1_credit_notes(db, from_date, to_date, company_id, include_expired=True)
+    invoices_by_id = _note_invoices(db, issued_credit_notes, company_id)
+    credit_notes = [cn for cn in issued_credit_notes if not _note_deadline_warnings(cn, invoices_by_id)]
 
     cn_summary = Gstr1CategorySummary()
     # Kept so the response shape stays stable; no document here raises a
@@ -2892,7 +2920,7 @@ def gstr1_summary(
 
     # Use the exported Table 12 rows so units, rates and buyer categories agree.
     filed_sales = _filed_sales(invoices)
-    hsn_section = _hsn_section(db, filed_sales, credit_notes, _note_invoices(db, credit_notes), to_date)
+    hsn_section = _hsn_section(db, filed_sales, credit_notes, invoices_by_id, to_date)
     hsn_items: list[Gstr1HsnSummaryItem] = []
     for section, rows in hsn_section.items():
         category = {"hsn_b2b": "B2B", "hsn_b2c": "B2C", "data": None}[section]
@@ -2915,7 +2943,7 @@ def gstr1_summary(
     zero_rate_invoices, zero_rate_value = _zero_rate_sales(filed_sales)
     doc_summary = Gstr1DocSummary(
         total_invoices=total_sales,
-        total_credit_notes=len(credit_notes),
+        total_credit_notes=len(issued_credit_notes),
         total_debit_notes=0,
         cancelled_invoices=len(_gstr1_cancelled_numbers(db, from_date, to_date, company_id)),
     )
@@ -2956,11 +2984,11 @@ def gstr1_export_json(
         raise HTTPException(status_code=400, detail=period_error)
 
     invoices = _gstr1_invoice_query(db, from_date, to_date, company_id)
-    credit_notes = _gstr1_credit_notes(db, from_date, to_date, company_id)
+    credit_notes = _gstr1_credit_notes(db, from_date, to_date, company_id, include_expired=True)
     company_gstin = (active_company.gst or "").strip().upper() if active_company else ""
 
     # Validate before export
-    invoices_by_id = _note_invoices(db, credit_notes)
+    invoices_by_id = _note_invoices(db, credit_notes, company_id)
     validation_errors = _validate_gstr1_export(db, company_gstin, invoices, credit_notes, invoices_by_id)
     if validation_errors:
         raise HTTPException(
@@ -2968,6 +2996,8 @@ def gstr1_export_json(
             detail="GSTR-1 validation failed: " + "; ".join(validation_errors),
         )
 
+    issued_credit_notes = credit_notes
+    credit_notes = [cn for cn in credit_notes if not _note_deadline_warnings(cn, invoices_by_id)]
     company_pos = _derive_place_of_supply(company_gstin)
     # Filing period is MMYYYY per the GSTN schema. A quarterly return is filed
     # for the last month of its quarter.
@@ -3162,7 +3192,7 @@ def gstr1_export_json(
         if is_gstr1_document_number(number)
     ]
     cn_ranges = _doc_ranges(
-        [cn.credit_note_number or f"CN-{cn.id}" for cn in credit_notes] + cancelled_note_numbers,
+        [cn.credit_note_number or f"CN-{cn.id}" for cn in issued_credit_notes] + cancelled_note_numbers,
         frozenset(cancelled_note_numbers),
     )
     if cn_ranges:  # 5 = Credit Note
@@ -3250,7 +3280,7 @@ def gstr1_export_csv(
 
     # Notes are negative, so a column adds up to what the return files.
     credit_notes = _gstr1_credit_notes(db, from_date, to_date, company_id)
-    invoices_by_id = _note_invoices(db, credit_notes)
+    invoices_by_id = _note_invoices(db, credit_notes, company_id)
     for cn in credit_notes:
         section, ctin, pos = _note_section(cn, invoices_by_id, company_pos)
         original = next((invoices_by_id[i.invoice_id] for i in cn.items if i.invoice_id in invoices_by_id), None)

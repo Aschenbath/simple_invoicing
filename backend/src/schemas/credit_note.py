@@ -130,6 +130,8 @@ class CreditNoteOut(BaseModel):
     cancelled_at: Optional[datetime] = None
     invoice_ids: List[int] = Field(default_factory=list)
     items: List[CreditNoteItemOut] = Field(default_factory=list)
+    # Creation-time warnings; the return reports re-evaluate eligibility.
+    gst_warnings: List[str] = Field(default_factory=list)
 
     @field_validator("direction", mode="before")
     @classmethod

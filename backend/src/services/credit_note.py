@@ -13,6 +13,7 @@ from src.models.invoice import Invoice, InvoiceItem
 from src.models.product import Product
 from src.schemas.credit_note import CreditNoteCreate, CreditNoteOut
 from src.services.financial_year import get_active_fy, get_fy_for_date
+from src.services.credit_note_deadline import section34_warning
 from src.services.serial_service import SerialManager
 from src.services.series import generate_next_number
 from src.services.gst_tax_service import (
@@ -197,6 +198,8 @@ def create_credit_note(
     db: Session,
     current_user_id: int,
     company_id: int | None = None,
+    *,
+    gst_warnings: list[str] | None = None,
 ) -> CreditNote:
     # ── 1. Validate ledger ───────────────────────────────────────────────────
     ledger_query = db.query(Ledger).filter(Ledger.id == payload.ledger_id)
@@ -408,6 +411,14 @@ def create_credit_note(
     active_fy = get_active_fy(db, company_id=company_id)
     fy = active_fy
     cn_date = payload.credit_note_date or india_today()
+    if direction == "outward" and gst_warnings is not None:
+        credited_invoice_ids = {item.invoice_id for item in payload.items}
+        for inv in invoices:
+            if inv.id not in credited_invoice_ids:
+                continue
+            warning = section34_warning(cn_date, inv.invoice_date, inv.invoice_number or f"#{inv.id}")
+            if warning:
+                gst_warnings.append(warning)
     dated_fy = get_fy_for_date(db, cn_date, company_id=company_id)
     if dated_fy:
         fy = dated_fy

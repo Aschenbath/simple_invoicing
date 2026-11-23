@@ -39,9 +39,11 @@ def create_credit_note_endpoint(
     active_company: CompanyProfile = Depends(get_active_company),
 ):
     company_id = getattr(active_company, "id", None)
-    cn = create_credit_note(payload, db, current_user.id, company_id=company_id)
+    gst_warnings: list[str] = []
+    cn = create_credit_note(payload, db, current_user.id, company_id=company_id, gst_warnings=gst_warnings)
     db.refresh(cn)
     result = _to_out(cn)
+    result.gst_warnings = gst_warnings
 
     track(
         "credit_note_created",

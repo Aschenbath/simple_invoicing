@@ -90,6 +90,7 @@ export default function CreditNotesPage() {
   const [previewCreditNote, setPreviewCreditNote] = useState<CreditNote | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [gstWarnings, setGstWarnings] = useState<string[]>([]);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -471,6 +472,9 @@ export default function CreditNotesPage() {
     try {
       setSubmitting(true);
       const response = await createCreditNote(payload);
+      setGstWarnings((response.data.gst_warnings || []).map(
+        (warning) => `${response.data.credit_note_number}: ${warning}`,
+      ));
       setSuccess(
         direction === 'inward'
           ? `Supplier credit note ${supplierNoteNumber.trim()} recorded as ${response.data.credit_note_number}.`
@@ -572,6 +576,12 @@ export default function CreditNotesPage() {
         onClearError={() => setError('')}
         onClearSuccess={() => setSuccess('')}
       />
+      {gstWarnings.length > 0 ? (
+        <div className="panel stack" role="alert">
+          {gstWarnings.map((warning) => <p className="field-warning" key={warning}>{warning}</p>)}
+          <button type="button" className="button button--secondary button--small" onClick={() => setGstWarnings([])}>Dismiss GST warning</button>
+        </div>
+      ) : null}
 
       <section className="content-grid">
         <article className="panel stack">
