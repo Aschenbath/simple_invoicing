@@ -23,6 +23,7 @@ from .builders import (
     _pdf_display_quantity,
     _pdf_display_unit,
     _pdf_unit_price,
+    invoice_cancellation_html,
 )
 from .purchase_template import (
     _build_item_serials_html,
@@ -50,6 +51,9 @@ def _build_invoice_html(invoice: Invoice, products: list[Product], invoice_bank_
         return _build_purchase_invoice_html(invoice, products, serials, settlement=settlement, paper=paper)
 
     compact = paper == "a5"
+    cancelled = getattr(invoice, "status", None) == "cancelled"
+    if cancelled:
+        pay_qr_html = ""
     page_rule, paper_css = document_paper_css(paper)
     currency = invoice.company_currency_code or "USD"
     voucher_label = "Sales" if invoice.voucher_type == "sales" else "Purchase"
@@ -566,6 +570,7 @@ def _build_invoice_html(invoice: Invoice, products: list[Product], invoice_bank_
 <div class="invoice-sheet">
   <div class="copy-label">{copy_label}</div>
   <div class="invoice-title">{invoice_title}</div>
+  {invoice_cancellation_html(invoice)}
   <header class="invoice-sheet__header">
     <div>
       <p class="eyebrow">Billed by</p>
@@ -622,7 +627,7 @@ def _build_invoice_html(invoice: Invoice, products: list[Product], invoice_bank_
       {invoice_discount_label}
       {_build_tcs_html(invoice, currency)}
       {round_off_html}
-      <p class="eyebrow" style="margin-top: 10px;">Total due</p>
+      <p class="eyebrow" style="margin-top: 10px;">{'Cancelled invoice total' if cancelled else 'Total due'}</p>
       <p class="invoice-sheet__total-value">{_fmt_currency(float(invoice.total_amount), currency)}</p>
       <p class="invoice-amount-words">{_amount_in_words_indian(float(invoice.total_amount), currency)}</p>
       <p class="muted-text">Authorized by {_e(invoice.company_name) or 'Billing company'}</p>

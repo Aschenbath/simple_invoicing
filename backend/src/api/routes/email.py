@@ -128,6 +128,8 @@ async def send_invoice_email(
     invoice = invoice_query.first()
     if not invoice:
         raise HTTPException(status_code=404, detail=f"Invoice {invoice_id} not found")
+    if invoice.status == "cancelled":
+        raise HTTPException(status_code=400, detail="Cancelled invoices cannot be emailed")
 
     to_email = payload.to or (invoice.ledger.email if invoice.ledger else None)
     if not to_email:

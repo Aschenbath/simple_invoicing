@@ -993,6 +993,7 @@ def cancel_invoice(
         processor.reverse_serials(invoice)
         processor.reverse_inventory(invoice)
         invoice.status = "cancelled"
+        invoice.cancelled_at = datetime.utcnow()
         reopen_after_invoice_cancelled(source_quotation)
         # The challan's goods are out on it again, now the invoice's are back.
         reopen_challan_after_invoice_cancelled(db, source_challan)
@@ -1047,6 +1048,7 @@ def restore_invoice(
         close_challan_after_invoice_restored(db, source_challan)
         processor.restore_inventory(invoice, company_id=active_company.id)
         invoice.status = "active"
+        invoice.cancelled_at = None
         close_after_invoice_restored(source_quotation)
         db.commit()
         db.refresh(invoice)
