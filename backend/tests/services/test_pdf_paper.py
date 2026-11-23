@@ -439,6 +439,20 @@ def test_a4_keeps_its_page_rule_and_columns():
     assert "A5" not in html
 
 
+@pytest.mark.parametrize("paper", ["a4", "a5"])
+@pytest.mark.parametrize("due_date", [datetime(2026, 12, 5), None])
+def test_sheet_invoice_prints_due_date_only_when_set(paper, due_date):
+    invoice = make_invoice(1)
+    invoice.due_date = due_date
+    html = _build_multi_copy_invoice_html(invoice, _products(), [], copies=2, paper=paper)
+
+    assert html.count("Date: 02 Sep 2026") == 2
+    if due_date:
+        assert html.count("Due date: 05 Dec 2026") == 2
+    else:
+        assert "Due date:" not in html
+
+
 def test_a5_drops_the_total_tax_column():
     html = invoice_html("a5")
     assert "@page { size: A5; margin: 8mm; }" in html

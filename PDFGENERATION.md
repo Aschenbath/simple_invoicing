@@ -17,6 +17,7 @@ The backend generates downloadable PDFs using WeasyPrint. HTML template construc
 - `GET /api/invoices/{invoice_id}/pdf`
     - route: `backend/src/api/routes/invoices.py`
     - template builder: `_build_invoice_html` / `_build_multi_copy_invoice_html`
+    - A4 and A5 sales invoices print the due date below the invoice date when one is set, on every copy.
 
 - `GET /api/ledgers/day-book/pdf`
     - route: `backend/src/api/routes/ledgers.py`

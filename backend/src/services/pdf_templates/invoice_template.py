@@ -55,6 +55,7 @@ def _build_invoice_html(invoice: Invoice, products: list[Product], invoice_bank_
     voucher_label = "Sales" if invoice.voucher_type == "sales" else "Purchase"
     inv_number = invoice.invoice_number or f"#{invoice.id}"
     inv_date = invoice.invoice_date.strftime("%d %b %Y") if invoice.invoice_date else (invoice.created_at.strftime("%d %b %Y") if invoice.created_at else "N/A")
+    due_date_line = f"<p>Due date: {invoice.due_date:%d %b %Y}</p>" if invoice.due_date else ""
     place_of_supply = getattr(invoice, "place_of_supply", None)
     # A buyer with no GSTIN gives nothing to compare, so the place of supply decides.
     interstate_supply = (
@@ -578,6 +579,7 @@ def _build_invoice_html(invoice: Invoice, products: list[Product], invoice_bank_
       <span class="invoice-badge">{voucher_label}</span>
       <h2>Invoice {_e(inv_number)}</h2>
       <p>Date: {inv_date}</p>
+      {due_date_line}
       {place_of_supply_line}
       {source_challan_line}
       <p>Currency: {_e(currency)}</p>
