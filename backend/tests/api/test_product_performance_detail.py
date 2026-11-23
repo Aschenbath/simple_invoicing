@@ -8,6 +8,8 @@ so the expected values are exact (an 18% GST line of 100 carries 18 of tax).
 from datetime import date, datetime
 from decimal import Decimal
 
+import pytest
+
 from src.models.company import CompanyProfile
 from src.models.product import Product
 from src.services.analytics_reports import _sales_velocity
@@ -55,6 +57,57 @@ def _assert_months_sum_to(summary, monthly_rows):
 
 
 class TestReconciliation:
+    @pytest.mark.parametrize("filter_customer", [False, True])
+    def test_supplier_discount_reduces_cost_in_list_detail_and_months(self, client, filter_customer):
+        widget = _create_product(client, "PD-DISCOUNT", "Discounted widget", purchase_price=999)
+        supplier = _create_ledger(client, "Supplier")
+        customer = _create_ledger(client, "Customer")
+        purchase = _create_invoice(
+            client, supplier, [_line(widget, 10, 100)], voucher_type="purchase", invoice_date=None,
+        )
+        _create_note(client, purchase, {purchase["items"][0]["id"]: 236}, direction="inward", note_type="discount")
+        _create_invoice(client, customer, [_line(widget, 10, 150)], invoice_date=None)
+        params = _today_window()
+        if filter_customer:
+            params["ledger_id"] = customer
+
+        data = _detail(client, widget, **params)
+        row = _list_row(client, widget, **params)
+        assert data["summary"] == row
+        assert row["average_buying_price"] == 80
+        assert row["cogs"] == 800
+        assert row["gross_profit"] == 700
+        assert row["margin_pct"] == 46.67
+        assert row["profit_per_unit"] == 70
+        _assert_months_sum_to(row, data["monthly_rows"])
+        month, = [item for item in data["monthly_rows"] if item["units_sold"]]
+        assert month["average_buying_price"] == 80
+        if not filter_customer:
+            assert row["net_units_bought"] == 10
+            assert row["purchase_spend"] == 800
+
+    def test_supplier_return_changes_weighted_cost_when_purchase_prices_differ(self, client):
+        widget = _create_product(client, "PD-RETURN", "Returned widget")
+        supplier = _create_ledger(client, "Supplier")
+        customer = _create_ledger(client, "Customer")
+        purchase = _create_invoice(
+            client, supplier, [_line(widget, 10, 100)], voucher_type="purchase", invoice_date=None,
+        )
+        _create_invoice(client, supplier, [_line(widget, 10, 200)], voucher_type="purchase", invoice_date=None)
+        _create_note(client, purchase, {purchase["items"][0]["id"]: 5}, direction="inward")
+        _create_invoice(client, customer, [_line(widget, 3, 300)], invoice_date=None)
+
+        data = _detail(client, widget, **_today_window())
+        row = data["summary"]
+        assert row["net_units_bought"] == 15
+        assert row["purchase_spend"] == 2500
+        assert row["average_buying_price"] == 166.67
+        assert row["cogs"] == 500
+        assert row["gross_profit"] == 400
+        _assert_months_sum_to(row, data["monthly_rows"])
+        month, = [item for item in data["monthly_rows"] if item["units_bought"]]
+        assert month["average_buying_price"] == 166.67
+
     def _seed(self, client):
         widget = _create_product(client, "PD-1", "Widget", purchase_price=999)
         other = _create_product(client, "PD-2", "Other", purchase_price=5)

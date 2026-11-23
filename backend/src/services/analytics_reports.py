@@ -798,8 +798,8 @@ def _credit_note_lines(
     return query.all()
 
 
-def _purchase_unit_costs(lines: list[tuple[int, Decimal, Decimal]]) -> dict[int, Decimal]:
-    """Weighted average ex-GST unit cost per product from purchase lines.
+def _purchase_unit_costs(lines: list[tuple[int, Decimal, Decimal]], note_lines: list) -> dict[int, Decimal]:
+    """Weighted average ex-GST unit cost, net of supplier credit/debit notes.
 
     Kept unrounded: it is multiplied by unit counts for COGS, and rounding the
     unit cost first would scale a sub-paisa error by the quantity.
@@ -809,7 +809,12 @@ def _purchase_unit_costs(lines: list[tuple[int, Decimal, Decimal]]) -> dict[int,
     for pid, qty, taxable in lines:
         spend[pid] = spend.get(pid, Decimal("0")) + taxable
         units[pid] = units.get(pid, Decimal("0")) + qty
-    return {pid: spend[pid] / units[pid] for pid in spend if units[pid]}
+    for direction, note_type, pid, qty, taxable, _ in note_lines:
+        if direction == "inward" and pid in spend:
+            spend[pid] -= Decimal(str(taxable or 0))
+            if note_type == "return":
+                units[pid] -= Decimal(str(qty or 0))
+    return {pid: spend[pid] / units[pid] for pid in spend if units[pid] > 0}
 
 
 # The raw sums every product (or month) accumulates before figures are derived.
@@ -924,7 +929,7 @@ def build_product_performance_report(
     notes move units, because a ``discount`` or ``adjustment`` note sends no
     goods back (the credit note service only touches stock for returns).
 
-    Cost: the weighted average ex-GST purchase price over the period
+    Cost: the weighted average ex-GST purchase price, net of inward notes over the period
     (``cost_basis="purchases"``), falling back to the product's current
     ``purchase_price`` when it had no purchases in the period
     (``cost_basis="current_price"``). With neither, the cost is unknown and
@@ -952,11 +957,15 @@ def build_product_performance_report(
             db, company_id=company_id, voucher_type="purchase", from_date=from_date,
             to_date=to_date, ledger_id=None, product_id=product_id,
         )
-    unit_costs = _purchase_unit_costs(cost_lines)
     note_lines = _credit_note_lines(
         db, company_id=company_id, from_date=from_date, to_date=to_date,
         ledger_id=ledger_id, product_id=product_id,
     )
+    cost_notes = note_lines if ledger_id is None else _credit_note_lines(
+        db, company_id=company_id, from_date=from_date, to_date=to_date,
+        ledger_id=None, product_id=product_id,
+    )
+    unit_costs = _purchase_unit_costs(cost_lines, cost_notes)
 
     acc: dict[int, dict[str, Decimal]] = {}
 
@@ -1131,7 +1140,11 @@ def build_product_performance_detail(
         db, company_id=company_id, from_date=from_date, to_date=to_date,
         ledger_id=ledger_id, product_id=product_id,
     )
-    period_cost = _purchase_unit_costs([(pid, qty, taxable) for pid, qty, taxable, _ in cost_lines])
+    cost_notes = note_lines if ledger_id is None else _credit_note_lines(
+        db, company_id=company_id, from_date=from_date, to_date=to_date,
+        ledger_id=None, product_id=product_id,
+    )
+    period_cost = _purchase_unit_costs([(pid, qty, taxable) for pid, qty, taxable, _ in cost_lines], cost_notes)
     unit_cost, _ = _unit_cost(period_cost.get(product_id), product.purchase_price)
 
     months = months_between(from_date, to_date)
@@ -1148,6 +1161,11 @@ def build_product_performance_detail(
     for _, qty, taxable, when in cost_lines:
         paid[(when.year, when.month)][0] += taxable
         paid[(when.year, when.month)][1] += qty
+    for direction, note_type, _, qty, taxable, when in cost_notes:
+        if direction == "inward":
+            paid[(when.year, when.month)][0] -= Decimal(str(taxable or 0))
+            if note_type == "return":
+                paid[(when.year, when.month)][1] -= Decimal(str(qty or 0))
     for direction, note_type, _, qty, taxable, note_date in note_lines:
         _add_note_line(buckets[(note_date.year, note_date.month)], direction, note_type, qty, taxable)
 
