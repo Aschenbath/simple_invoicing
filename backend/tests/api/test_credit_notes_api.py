@@ -282,13 +282,10 @@ def _bootstrap_company(client, name: str) -> tuple[int, dict]:
     company_id = response.json()["id"]
     headers = {"X-Company-Id": str(company_id)}
 
-    year = _this_year()
-    response = client.post(
-        "/api/financial-years/",
-        headers=headers,
-        json={"label": str(year), "start_date": f"{year}-01-01", "end_date": f"{year}-12-31"},
-    )
-    assert response.status_code < 400, f"FY create failed: {response.text}"
+    response = client.get("/api/financial-years/", headers=headers)
+    assert response.status_code == 200, response.text
+    financial_year, = response.json()
+    assert financial_year["is_active"]
 
     response = client.post(
         "/api/ledgers/",
