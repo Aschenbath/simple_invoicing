@@ -740,6 +740,9 @@ def update_product_with_inventory(
     if not product:
         raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
 
+    if payload.status == "inactive" and product.track_serials:
+        raise HTTPException(status_code=400, detail="Serial-tracked products must maintain inventory")
+
     # Update product fields
     if payload.name is not None:
         product.name = payload.name.strip()
