@@ -3179,6 +3179,30 @@ a.invoice-row {
   border: 0;
 }
 
+.new-company-dialog .button--icon {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+}
+
+.new-company-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 767px) {
+  .new-company-actions {
+    flex-direction: column;
+  }
+
+  .new-company-actions .button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
