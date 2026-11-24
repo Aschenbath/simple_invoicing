@@ -205,8 +205,8 @@ export default function ShareModal({
               {whatsAppNumber === null ? (
                 <p className="field-hint" style={{ margin: 0 }}>
                   {phone
-                    ? 'No usable phone number on this account, so WhatsApp will ask you to pick the contact.'
-                    : 'No phone number on this account, so WhatsApp will ask you to pick the contact.'}
+                    ? 'This customer has no usable phone number saved. WhatsApp will ask you to choose a contact.'
+                    : 'This customer has no phone number saved. WhatsApp will ask you to choose a contact.'}
                 </p>
               ) : null}
 
