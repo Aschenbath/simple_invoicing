@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent, type Ref } from 'react';
 import ModalCloseButton from '../../../components/ModalCloseButton';
 import GstinInput from '../../../components/GstinInput';
 import { useQueryClient } from '@tanstack/react-query';
@@ -7,8 +7,9 @@ import type { LedgerCreate } from '../../../types/api';
 import { useEscapeClose } from '../../../hooks/useEscapeClose';
 import { invoiceQueryKeys } from '../../../features/invoices/queryKeys';
 import { useInvoiceComposerStore } from '../../../store/useInvoiceComposerStore';
-import { counterpartyFor } from '../counterparty';
-import { hasLedgerDetails } from '../../../utils/ledgerQuickCreate';
+import { counterpartyFor, type Counterparty } from '../counterparty';
+import { findLedgerByGstin, hasLedgerDetails, isDuplicateGstinError, type ExistingGstinLedger } from '../../../utils/ledgerQuickCreate';
+import { GSTIN_LENGTH, gstinError } from '../../../utils/gstin';
 import {
   applyOpeningBalanceSide,
   openingBalanceMagnitude,
@@ -35,6 +36,54 @@ function createInitialLedgerForm(): LedgerCreate {
   };
 }
 
+export function LedgerQuickCreateGstinField({ value, touched, duplicate, counterparty, inputRef, onChange, onBlur, onUse, submitting }: {
+  value: string;
+  touched: boolean;
+  /** Undefined before a duplicate response; null when its owner cannot be found. */
+  duplicate?: ExistingGstinLedger | null;
+  counterparty: Counterparty;
+  inputRef?: Ref<HTMLInputElement>;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+  onUse: (ledger: ExistingGstinLedger) => void;
+  submitting: boolean;
+}) {
+  const invalid = (touched || value.length >= GSTIN_LENGTH) && gstinError(value);
+  const message = invalid
+    ? 'Enter the 15-character GSTIN, like 27AAPFU0939F1ZV, or leave it blank.'
+    : duplicate !== undefined
+      ? duplicate?.name
+        ? `${duplicate.name} already has this GSTIN.`
+        : `A ${counterparty.noun} with this GSTIN already exists. Search for it in the ${counterparty.label} field.`
+      : null;
+  return (
+    <div className="field">
+      <label htmlFor="modal-ledger-gst">GSTIN (optional)</label>
+      <GstinInput
+        ref={inputRef}
+        id="modal-ledger-gst"
+        className="input"
+        value={value}
+        onValueChange={onChange}
+        onBlur={onBlur}
+        placeholder="27AAPFU0939F1ZV"
+        aria-invalid={Boolean(message) || undefined}
+        aria-describedby={message ? 'modal-ledger-gst-error' : undefined}
+      />
+      {message ? (
+        <small id="modal-ledger-gst-error" className="field-error field-error--block" role="alert">{message}</small>
+      ) : (
+        <small className="field-hint">Only for business {counterparty.noun}s. Leave blank for walk-in {counterparty.noun}s.</small>
+      )}
+      {!invalid && duplicate && (
+        <button type="button" className="button button--ghost button--small ledger-quick-create__use-existing" disabled={submitting} onClick={() => onUse(duplicate)}>
+          Use {duplicate.name || counterparty.noun}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function LedgerQuickCreateModal({ voucherType = 'sales' }: { voucherType?: string }) {
   const queryClient = useQueryClient();
   const showLedgerCreateModal = useInvoiceComposerStore((state) => state.showLedgerCreateModal);
@@ -47,7 +96,11 @@ export default function LedgerQuickCreateModal({ voucherType = 'sales' }: { vouc
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [gstTouched, setGstTouched] = useState(false);
+  const [duplicateGstin, setDuplicateGstin] = useState<{ gst: string; ledger: ExistingGstinLedger | null } | null>(null);
   const nameInput = useRef<HTMLInputElement>(null);
+  const gstInput = useRef<HTMLInputElement>(null);
+  const currentGst = useRef(ledgerForm.gst);
   const counterparty = counterpartyFor(voucherType);
   const detailsExpanded = detailsOpen || hasLedgerDetails(ledgerForm);
 
@@ -57,12 +110,37 @@ export default function LedgerQuickCreateModal({ voucherType = 'sales' }: { vouc
     }
   });
 
+  function resetForm() {
+    setLedgerForm(createInitialLedgerForm());
+    currentGst.current = '';
+    setLedgerOpeningBalanceSide('debit');
+    setDetailsOpen(false);
+    setNameError(false);
+    setGstTouched(false);
+    setDuplicateGstin(null);
+    setSubmitError('');
+  }
+
+  function useExistingLedger(ledger: ExistingGstinLedger) {
+    setSelectedLedgerId(String(ledger.id));
+    resetForm();
+    closeLedgerCreateModal();
+    setFeedbackSuccess(`${ledger.name || counterparty.label} selected for this bill.`);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (ledgerSubmitting) return;
+    setSubmitError('');
     if (!ledgerForm.name.trim()) {
       setNameError(true);
       nameInput.current?.focus();
+      return;
+    }
+    setNameError(false);
+    if (gstinError(ledgerForm.gst)) {
+      setGstTouched(true);
+      gstInput.current?.focus();
       return;
     }
 
@@ -70,6 +148,7 @@ export default function LedgerQuickCreateModal({ voucherType = 'sales' }: { vouc
       setLedgerSubmitting(true);
       setSubmitError('');
       setNameError(false);
+      setDuplicateGstin(null);
 
       const payload: LedgerCreate = {
         name: ledgerForm.name.trim(),
@@ -90,14 +169,22 @@ export default function LedgerQuickCreateModal({ voucherType = 'sales' }: { vouc
 
       const response = await api.post<{ id: number }>('/ledgers/', payload);
       setSelectedLedgerId(String(response.data.id));
-      setLedgerForm(createInitialLedgerForm());
-      setLedgerOpeningBalanceSide('debit');
-      setDetailsOpen(false);
+      resetForm();
       closeLedgerCreateModal();
       setFeedbackSuccess(`${counterparty.label} added and selected for this bill.`);
       await queryClient.invalidateQueries({ queryKey: invoiceQueryKeys.all });
     } catch (err) {
-      setSubmitError(getApiErrorMessage(err, `Unable to add ${counterparty.noun}`));
+      if (isDuplicateGstinError(err, ledgerForm.gst)) {
+        const ledger = await findLedgerByGstin(ledgerForm.gst);
+        // A lookup for an earlier value must not offer the wrong customer after editing.
+        if (currentGst.current === ledgerForm.gst) {
+          setDuplicateGstin({ gst: ledgerForm.gst, ledger });
+          gstInput.current?.focus();
+        }
+      } else {
+        setSubmitError(getApiErrorMessage(err, `Unable to add ${counterparty.noun}`)
+          .replace(/\bledger\b/gi, counterparty.noun).replace(/\bGST\b/g, 'GSTIN'));
+      }
     } finally {
       setLedgerSubmitting(false);
     }
@@ -119,7 +206,7 @@ export default function LedgerQuickCreateModal({ voucherType = 'sales' }: { vouc
           </div>
         </div>
 
-        <form id="ledger-quick-create-form" className="stack ledger-quick-create__form" onSubmit={handleSubmit}>
+        <form id="ledger-quick-create-form" className="stack ledger-quick-create__form" noValidate onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="modal-ledger-name">{counterparty.label} name *</label>
             <input
@@ -157,19 +244,21 @@ export default function LedgerQuickCreateModal({ voucherType = 'sales' }: { vouc
             />
             <small className="field-hint">For WhatsApp bills and payment reminders</small>
           </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-gst">GSTIN (optional)</label>
-            <GstinInput
-              id="modal-ledger-gst"
-              className="input"
-              value={ledgerForm.gst}
-              onValueChange={(gst) => setLedgerForm((current) => ({ ...current, gst }))}
-              placeholder="27ABCDE1234F1Z0"
-              pattern="^$|[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][A-Za-z0-9]Z[A-Za-z0-9]$"
-              title="Enter a valid 15-character GSTIN (e.g. 27ABCDE1234F1Z0), or leave blank"
-            />
-            <small className="field-hint">Only for business {counterparty.noun}s. Leave blank for walk-in {counterparty.noun}s.</small>
-          </div>
+          <LedgerQuickCreateGstinField
+            inputRef={gstInput}
+            value={ledgerForm.gst}
+            touched={gstTouched}
+            duplicate={duplicateGstin?.gst === ledgerForm.gst ? duplicateGstin.ledger : undefined}
+            counterparty={counterparty}
+            submitting={ledgerSubmitting}
+            onChange={(gst) => {
+              currentGst.current = gst;
+              setLedgerForm((current) => ({ ...current, gst }));
+              setDuplicateGstin(null);
+            }}
+            onBlur={() => setGstTouched(true)}
+            onUse={useExistingLedger}
+          />
           <button
             type="button"
             className="button button--ghost ledger-quick-create__toggle"

@@ -3343,6 +3343,12 @@ a.invoice-row {
   font-weight: 400;
 }
 
+.ledger-quick-create__use-existing {
+  min-height: 44px;
+  justify-self: start;
+  align-self: flex-start;
+}
+
 /* The body scrolls independently so saving and request errors stay in reach. */
 .ledger-quick-create__footer {
   display: grid;
