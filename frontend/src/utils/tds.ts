@@ -1,4 +1,4 @@
-import type { OutstandingInvoice, PaymentInvoiceAllocation, TaxWithholdingSection } from '../types/api';
+import type { OutstandingInvoice, PaymentInvoiceAllocation } from '../types/api';
 
 const paise = (value: number | string | null | undefined): number => Math.round(Number(value || 0) * 100);
 

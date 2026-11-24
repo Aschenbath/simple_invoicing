@@ -58,6 +58,7 @@ import { COMPOSER_PHONE_DESCRIPTION, billingAsLine, savedDocumentsLabel, savedDo
 import { FieldError, LineFieldErrors, useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { createItem, type InvoiceFormItem } from './types';
 import { defaultPaymentAccountId } from '../../utils/cashBank';
+import { missingSerialsMessage } from '../../utils/missingSerialsMessage';
 
 export default function InvoicesPage() {
   const { activeFY } = useFY();
@@ -495,6 +496,10 @@ export default function InvoicesPage() {
   function lineQuantity(item: InvoiceFormItem) {
     return isTrackedLine(item) ? item.serials.length : Number(item.quantity);
   }
+
+  const serialSubmitMessage = missingSerialsMessage(items.flatMap((item, index) =>
+    serialBlockIds.includes(item.id) && isTrackedLine(item) && item.serials.length === 0 ? [index + 1] : [],
+  ));
 
   /** Writes to the ref first so the next queued scan reads the new lines. */
   function commitItems(next: InvoiceFormItem[]) {
@@ -1188,7 +1193,13 @@ export default function InvoicesPage() {
     if (missingSerials.length > 0) {
       setSerialBlockIds(missingSerials.map((item) => item.id));
       flashLine(missingSerials[0].id);
-      scanInputRef.current?.focus();
+      window.requestAnimationFrame(() => {
+        const firstId = missingSerials[0].id;
+        document.getElementById(`invoice-line-${firstId}`)?.querySelector('.serial-line')?.scrollIntoView({ block: 'center' });
+        if (window.matchMedia('(pointer: fine)').matches) {
+          document.getElementById(`invoice-line-${firstId}-serial-input`)?.focus({ preventScroll: true });
+        }
+      });
       return;
     }
 
@@ -2055,6 +2066,7 @@ export default function InvoicesPage() {
                   return (
                     <div
                       key={item.id}
+                      id={`invoice-line-${item.id}`}
                       className="line-item line-item--discount"
                       data-flash={flashItemId === item.id ? 'on' : undefined}
                     >
@@ -2183,12 +2195,26 @@ export default function InvoicesPage() {
                             onPickFromStock={voucherType === 'sales' ? () => setPickerItemId(item.id) : undefined}
                           />
                           {item.serials.length === 0 ? (
-                            <p
-                              className={`serial-line__message${serialBlockIds.includes(item.id) ? ' serial-line__message--blocking' : ''}`}
-                              role={serialBlockIds.includes(item.id) ? 'alert' : undefined}
+                            <div
+                              className={serialBlockIds.includes(item.id) ? 'form-error stock-shortage' : 'field-warning field-warning--action'}
+                              role={serialBlockIds.includes(item.id) ? 'alert' : 'status'}
                             >
-                              This product is serial tracked — scan or add at least one serial before saving.
-                            </p>
+                              {voucherType === 'purchase' ? (
+                                <span>This product is serial tracked — scan or add at least one serial before saving.</span>
+                              ) : (
+                                <>
+                                  <span>Add a serial number to bill this product. Not in stock yet? Add the serials to stock first.</span>
+                                  <button
+                                    type="button"
+                                    className="button button--ghost button--small serial-line__stock-action"
+                                    onClick={() => openStockUpdateModal({ productId: Number(item.productId), quantity: 1 })}
+                                  >
+                                    <Boxes size={15} aria-hidden="true" />
+                                    Add serials to stock
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           ) : null}
                         </div>
                       ) : null}
@@ -2278,6 +2304,7 @@ export default function InvoicesPage() {
                 </button>
               ) : null}
               <div className="composer-submit">
+                {serialSubmitMessage ? <p className="form-error composer-submit__reason" role="alert">{serialSubmitMessage}</p> : null}
                 <span className="composer-submit__total">{totalBarLabel(formatCurrency(projectedTotalAmount, activeCurrencyCode))}</span>
               {voucherType === 'payment' ? (
                 <button className="button button--primary" disabled={submitting} title="Create payment voucher" aria-label="Create payment voucher">
@@ -2335,6 +2362,10 @@ export default function InvoicesPage() {
           productName={pickerProduct.name}
           selected={pickerItem.serials}
           onCancel={() => setPickerItemId(null)}
+          onAddStock={() => {
+            setPickerItemId(null);
+            openStockUpdateModal({ productId: pickerProduct.id, quantity: 1 });
+          }}
           onConfirm={(serials) => {
             setLineSerials(pickerItem.id, serials);
             setPickerItemId(null);

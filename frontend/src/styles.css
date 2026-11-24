@@ -9291,9 +9291,14 @@ a.ledger-chip:focus-visible {
 
 .composer-submit { display: contents; }
 .composer-submit__total { display: none; }
+.composer-submit__reason { flex: 1 1 100%; order: -1; margin: 0; }
+.serial-line__stock-action { min-height: 44px; }
 
 @media (max-width: 767px) {
   .invoice-composer-page { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .invoice-composer-page:has(.composer-submit__reason) { padding-bottom: calc(200px + env(safe-area-inset-bottom)); }
+  .invoice-composer-page .serial-line { scroll-margin-block: 24px 180px; }
+  .serial-line__stock-action { width: 100%; }
   .invoice-composer-page .composer-hide-phone { display: none; }
   .invoice-composer-page .composer-show-phone { display: block; }
   .composer-billing-line { margin: 0; }
@@ -9301,6 +9306,7 @@ a.ledger-chip:focus-visible {
 
   .composer-submit {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px;

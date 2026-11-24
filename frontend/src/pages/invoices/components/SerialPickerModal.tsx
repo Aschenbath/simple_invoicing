@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Check } from 'lucide-react';
+import { Boxes, Check } from 'lucide-react';
 import ModalCloseButton from '../../../components/ModalCloseButton';
 import { getApiErrorMessage } from '../../../api/client';
 import { fetchAvailableSerials } from '../../../features/serials/api';
@@ -15,6 +15,7 @@ type SerialPickerModalProps = {
   selected: string[];
   onCancel: () => void;
   onConfirm: (serials: string[]) => void;
+  onAddStock?: () => void;
 };
 
 export default function SerialPickerModal({
@@ -23,6 +24,7 @@ export default function SerialPickerModal({
   selected,
   onCancel,
   onConfirm,
+  onAddStock,
 }: SerialPickerModalProps) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -151,8 +153,16 @@ export default function SerialPickerModal({
           {serialsQuery.error ? (
             <p className="field-warning">{getApiErrorMessage(serialsQuery.error, 'Unable to load serials')}</p>
           ) : null}
-          {!serialsQuery.isLoading && rows.length === 0 ? (
-            <p className="empty-state">No in-stock serials for this product.</p>
+          {!serialsQuery.isLoading && !serialsQuery.error && rows.length === 0 ? (
+            <div className="empty-state">
+              <p>No in-stock serials for this product. Add its serial numbers to stock first, then pick them here.</p>
+              {onAddStock ? (
+                <button type="button" className="button button--ghost button--small serial-line__stock-action" onClick={onAddStock}>
+                  <Boxes size={15} aria-hidden="true" />
+                  Add serials to stock
+                </button>
+              ) : null}
+            </div>
           ) : null}
 
           <ul id={listboxId} ref={listRef} className="serial-picker__list" role="listbox" aria-multiselectable="true">

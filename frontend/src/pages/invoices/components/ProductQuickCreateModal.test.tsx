@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import ProductQuickCreateModal from './ProductQuickCreateModal';
+import ProductQuickCreateModal, { SerialTrackingHint } from './ProductQuickCreateModal';
 
 /* Server rendering reads a zustand store's initial state, where the dialog is
    closed, so the store is swapped for one that has it open. */
@@ -48,5 +48,21 @@ describe('ProductQuickCreateModal stock counting (issue 983)', () => {
     expect(stockBox(html)).toContain('checked');
     expect(html).toContain('Starts on because this company already counts stock.');
     expect(html).toMatch(/<input[^>]*id="modal-product-opening-stock"[^>]*required/);
+  });
+});
+
+describe('serial tracking warning', () => {
+  it('warns that billing needs serials in stock when tracking is checked', () => {
+    const html = renderToStaticMarkup(<SerialTrackingHint tracked />);
+    expect(html).toContain('class="field-warning" role="status"');
+    expect(html).toContain('You can&#x27;t bill this product until you add its serial numbers (on a purchase entry, or with Update stock). Leave this off to bill it now.');
+    expect(html).not.toContain('Receive the units on a purchase entry once the product is saved.');
+  });
+
+  it('keeps only the original hint when tracking is unchecked', () => {
+    const html = renderToStaticMarkup(<SerialTrackingHint tracked={false} />);
+    expect(html).not.toContain('role="status"');
+    expect(html).toContain('Receive the units on a purchase entry once the product is saved.');
+    expect(renderOpenModal(false)).not.toContain('Leave this off to bill it now.');
   });
 });

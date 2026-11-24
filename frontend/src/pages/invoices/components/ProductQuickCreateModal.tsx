@@ -32,6 +32,22 @@ function RequiredMark() {
   return <span className="required-mark" aria-hidden="true" title="Required">*</span>;
 }
 
+export function SerialTrackingHint({ tracked }: { tracked: boolean }) {
+  return (
+    <>
+      {tracked ? (
+        <small className="field-warning" role="status">
+          You can&apos;t bill this product until you add its serial numbers (on a purchase entry, or with Update stock). Leave this off to bill it now.
+        </small>
+      ) : null}
+      <small className="field-hint">
+        Each unit gets its own IMEI or serial number — for phones, appliances, anything with a warranty.
+        {!tracked ? ' Receive the units on a purchase entry once the product is saved.' : ''}
+      </small>
+    </>
+  );
+}
+
 /* Serial tracking is asked for here and nowhere else in the composer, so it
    rides along locally rather than widening the shared form state. */
 
@@ -320,10 +336,7 @@ export default function ProductQuickCreateModal({ countsStockByDefault }: Produc
               />
               Track serial numbers / IMEI
             </label>
-            <small className="field-hint">
-              Each unit gets its own IMEI or serial number — for phones, appliances, anything with a warranty.
-              Receive the units on a purchase entry once the product is saved.
-            </small>
+            <SerialTrackingHint tracked={productForm.track_serials} />
           </div>
         </form>
       </div>

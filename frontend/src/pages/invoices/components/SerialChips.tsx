@@ -73,7 +73,7 @@ export default function SerialChips({
       }
 
       if (!lookup.found) {
-        setError(lookup.detail);
+        setError(`Serial ${candidate} is not in your stock. Add it to stock first, then add it here.`);
         return;
       }
       if (lookup.result.kind !== 'serial') {
