@@ -211,7 +211,7 @@ export default function ReceiptModal({
           </div>
           <form onSubmit={(e) => void handleSubmit(e)} className="stack">
             <div className="field">
-              <label htmlFor="rcpt-amount">Amount</label>
+              <label htmlFor="rcpt-amount">Amount *</label>
               <input
                 id="rcpt-amount"
                 className="input"

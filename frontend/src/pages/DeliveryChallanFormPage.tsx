@@ -211,7 +211,7 @@ export default function DeliveryChallanFormPage() {
             <form className="stack" onSubmit={handleSubmit}>
               <div className="field-grid">
                 <div className="field">
-                  <label htmlFor="challan-ledger">Customer</label>
+                  <label htmlFor="challan-ledger">Customer *</label>
                   <LedgerCombobox
                     id="challan-ledger"
                     ledgers={ledgers}
@@ -236,7 +236,7 @@ export default function DeliveryChallanFormPage() {
                   </p>
                 </div>
                 <div className="field">
-                  <label htmlFor="challan-date">Challan date</label>
+                  <label htmlFor="challan-date">Challan date *</label>
                   <input
                     id="challan-date"
                     className="input"
@@ -360,7 +360,7 @@ export default function DeliveryChallanFormPage() {
                   return (
                     <div key={line.id} className="line-item">
                       <div className="field">
-                        <label htmlFor={`challan-product-${n}`}>Line {n}</label>
+                        <label htmlFor={`challan-product-${n}`}>Line {n} *</label>
                         <ProductCombobox
                           id={`challan-product-${n}`}
                           products={products}
@@ -374,7 +374,7 @@ export default function DeliveryChallanFormPage() {
                       </div>
 
                       <div className="field">
-                        <label htmlFor={`challan-quantity-${n}`}>Qty{unit ? ` (${unit})` : ''}</label>
+                        <label htmlFor={`challan-quantity-${n}`}>Qty{unit ? ` (${unit})` : ''} *</label>
                         <input
                           id={`challan-quantity-${n}`}
                           className="input"

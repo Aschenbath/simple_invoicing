@@ -614,7 +614,7 @@ export default function CreditNotesPage() {
             <form className="stack" onSubmit={handleSubmit}>
               <div className="field-grid">
                 <label>
-                  <span>Voucher</span>
+                  <span>Voucher *</span>
                   <select
                     id="credit-note-direction"
                     className="select"
@@ -633,7 +633,7 @@ export default function CreditNotesPage() {
                   </select>
                 </label>
                 <label>
-                  <span>Ledger</span>
+                  <span>Ledger *</span>
                   <LedgerCombobox
                     id="credit-note-ledger"
                     ledgers={ledgers}
@@ -643,7 +643,7 @@ export default function CreditNotesPage() {
                   />
                 </label>
                 <label>
-                  <span>Type</span>
+                  <span>Type *</span>
                   <select
                     className="select"
                     value={creditNoteType}
@@ -660,7 +660,7 @@ export default function CreditNotesPage() {
                   </select>
                 </label>
                 <label>
-                  <span>Credit note date</span>
+                  <span>Credit note date *</span>
                   <input
                     id="credit-note-date"
                     className="input"
@@ -682,7 +682,7 @@ export default function CreditNotesPage() {
                   </p>
                   <div className="field-grid">
                     <label>
-                      <span>Supplier credit note #</span>
+                      <span>Supplier credit note # *</span>
                       <input
                         id="credit-note-supplier-number"
                         className="input"
@@ -693,7 +693,7 @@ export default function CreditNotesPage() {
                       />
                     </label>
                     <label>
-                      <span>Supplier credit note date</span>
+                      <span>Supplier credit note date *</span>
                       <input
                         id="credit-note-supplier-date"
                         className="input"
