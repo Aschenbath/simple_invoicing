@@ -66,23 +66,21 @@ test.describe('Invoices', () => {
     await expect(page.locator('h1')).toContainText('Invoice composer');
   });
 
-  test('creates a ledger from the quick-create modal and selects it in the composer', async ({ authedPage: page }) => {
+  test('adds a customer from the quick-create sheet and selects it in the composer', async ({ authedPage: page }) => {
     const ledgerName = `QuickLedger-${Date.now().toString(36)}`;
 
     await clickNavLink(page, '/invoices');
-    await page.waitForTimeout(500);
-    await page.getByRole('button', { name: 'New ledger' }).click();
+    await page.getByRole('button', { name: 'Add customer', exact: true }).click();
 
-    const modal = page.getByRole('dialog', { name: 'Create ledger' });
+    const modal = page.getByRole('dialog', { name: 'Add customer', exact: true });
     await expect(modal).toBeVisible();
 
     await modal.locator('#modal-ledger-name').fill(ledgerName);
-    await modal.locator('#modal-ledger-address').fill('Quick ledger address');
-    await modal.locator('#modal-ledger-gst').fill(uniqueGstin());
-    await modal.locator('#modal-ledger-phone').fill('+91 9999999999');
-    await modal.getByRole('button', { name: 'Save ledger' }).click();
+    // The short sheet only requires a name; the extra details stay collapsed.
+    await expect(modal.locator('#modal-ledger-address')).toBeHidden();
+    await modal.getByRole('button', { name: 'Save customer', exact: true }).click();
 
-    await expectSuccess(page, 'Ledger added and selected for this invoice.');
+    await expectSuccess(page, 'Customer added and selected for this bill.');
     await expect(modal).toHaveCount(0);
     await expect(page.locator('#invoice-ledger')).toHaveValue(new RegExp(ledgerName));
   });

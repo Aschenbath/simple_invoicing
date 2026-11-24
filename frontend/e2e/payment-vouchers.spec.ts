@@ -179,14 +179,11 @@ test.describe('Payment Vouchers from Invoices Page', () => {
     await expect(page.locator('#payment-amount')).toHaveCount(0);
   });
 
-  test('Invoices tab and Payment Vouchers tab are both visible', async ({ authedPage: page }) => {
+  test('opens the invoice feed from the composer through the sidebar', async ({ authedPage: page }) => {
     await clickNavLink(page, '/invoices');
     await expect(page.locator('h1')).toContainText('Invoice composer', { timeout: Number((globalThis as any).process?.env?.E2E_EXPECT_TIMEOUT_MS || '5000') });
 
-    // Composer now links to a dedicated invoice feed view.
-    const feedLink = page.locator('a:has-text("Open invoice view")');
-    await expect(feedLink).toBeVisible();
-    await feedLink.click();
+    await clickNavLink(page, '/invoices-view');
     await expect(page).toHaveURL(/\/invoices-view/);
     await expect(page.locator('h1')).toContainText('Invoice Feed');
   });

@@ -1,4 +1,11 @@
 import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
+
+function salesSeries(page: Page) {
+  return page.locator('#invoice-series-settings .panel').filter({
+    has: page.getByText('Sales', { exact: true }),
+  });
+}
 
 test.describe('Invoice Series', () => {
   test('shows invoice series card on company page', async ({ authedPage: page }) => {
@@ -68,57 +75,62 @@ test.describe('Invoice Series', () => {
     await page.goto('/settings/company');
     await expect(page.locator('h2:has-text("Invoice series")')).toBeVisible({ timeout: Number((globalThis as any).process?.env?.E2E_EXPECT_TIMEOUT_MS || '5000') });
 
+    const series = salesSeries(page);
+
     // Change Sales prefix to a unique value
-    const prefixInputs = page.locator('[id^="series-prefix-"]');
-    await expect(prefixInputs.first()).toBeVisible({ timeout: 5_000 });
-    await prefixInputs.first().fill('SAL');
+    const prefixInputs = series.locator('[id^="series-prefix-"]');
+    await expect(prefixInputs).toBeVisible({ timeout: 5_000 });
+    await prefixInputs.fill('SAL');
 
     // Save
-    const saveButtons = page.locator('button:has-text("Save")');
-    await saveButtons.first().click();
+    const saveButton = series.getByRole('button', { name: 'Save', exact: true });
+    await saveButton.click();
 
     // Success indicator
-    await expect(page.locator('text=Saved').first()).toBeVisible({ timeout: 8_000 });
+    await expect(series.getByText('Saved', { exact: true })).toBeVisible({ timeout: 8_000 });
   });
 
   test('can save invoice series suffix settings', async ({ authedPage: page }) => {
     await page.goto('/settings/company');
     await expect(page.locator('h2:has-text("Invoice series")')).toBeVisible({ timeout: Number((globalThis as any).process?.env?.E2E_EXPECT_TIMEOUT_MS || '5000') });
 
-    const suffixInputs = page.locator('[id^="series-suffix-"]');
-    await expect(suffixInputs.first()).toBeVisible({ timeout: 5_000 });
-    await suffixInputs.first().fill('/SUF');
+    const series = salesSeries(page);
+    const suffixInputs = series.locator('[id^="series-suffix-"]');
+    await expect(suffixInputs).toBeVisible({ timeout: 5_000 });
+    // Keep the longest generated number within GSTR-1's 16-character limit.
+    await suffixInputs.fill('/S');
 
-    const saveButtons = page.locator('button:has-text("Save")');
-    await saveButtons.first().click();
+    const saveButton = series.getByRole('button', { name: 'Save', exact: true });
+    await saveButton.click();
 
-    await expect(page.locator('text=Saved').first()).toBeVisible({ timeout: 8_000 });
+    await expect(series.getByText('Saved', { exact: true })).toBeVisible({ timeout: 8_000 });
 
-    await suffixInputs.first().fill('');
-    await saveButtons.first().click();
-    await expect(page.locator('text=Saved').first()).toBeVisible({ timeout: 8_000 });
+    await suffixInputs.fill('');
+    await saveButton.click();
+    await expect(series.getByText('Saved', { exact: true })).toBeVisible({ timeout: 8_000 });
   });
 
   test('rapid sequential edits save cleanly without leaving the row in an error state', async ({ authedPage: page }) => {
     await page.goto('/settings/company');
     await expect(page.locator('h2:has-text("Invoice series")')).toBeVisible({ timeout: Number((globalThis as any).process?.env?.E2E_EXPECT_TIMEOUT_MS || '5000') });
 
-    const prefixInput = page.locator('[id^="series-prefix-"]').first();
-    const suffixInput = page.locator('[id^="series-suffix-"]').first();
-    const saveButton = page.locator('button:has-text("Save")').first();
+    const series = salesSeries(page);
+    const prefixInput = series.locator('[id^="series-prefix-"]');
+    const suffixInput = series.locator('[id^="series-suffix-"]');
+    const saveButton = series.getByRole('button', { name: 'Save', exact: true });
 
     await prefixInput.fill('QCK');
     await suffixInput.fill('/R1');
     await saveButton.dblclick();
 
-    await expect(page.locator('text=Saved').first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.locator('text=Failed to save')).toHaveCount(0);
+    await expect(series.getByText('Saved', { exact: true })).toBeVisible({ timeout: 8_000 });
+    await expect(series.getByText('Failed to save')).toHaveCount(0);
     await expect(saveButton).toBeEnabled({ timeout: 8_000 });
 
     await prefixInput.fill('INV');
     await suffixInput.fill('');
     await saveButton.click();
-    await expect(page.locator('text=Saved').first()).toBeVisible({ timeout: 8_000 });
+    await expect(series.getByText('Saved', { exact: true })).toBeVisible({ timeout: 8_000 });
   });
 
   test('pad digits dropdown changes preview', async ({ authedPage: page }) => {
@@ -160,19 +172,20 @@ test.describe('Invoice Series', () => {
     await page.goto('/settings/company');
     await expect(page.locator('h2:has-text("Invoice series")')).toBeVisible({ timeout: Number((globalThis as any).process?.env?.E2E_EXPECT_TIMEOUT_MS || '5000') });
 
-    const prefixInputs = page.locator('[id^="series-prefix-"]');
-    await expect(prefixInputs.first()).toBeVisible({ timeout: 5_000 });
+    const series = salesSeries(page);
+    const prefixInputs = series.locator('[id^="series-prefix-"]');
+    await expect(prefixInputs).toBeVisible({ timeout: 5_000 });
 
     // Set to E2E prefix so we can verify it later
-    await prefixInputs.first().fill('E2E');
-    const saveButtons = page.locator('button:has-text("Save")');
-    await saveButtons.first().click();
-    await expect(page.locator('text=Saved').first()).toBeVisible({ timeout: 8_000 });
+    await prefixInputs.fill('E2E');
+    const saveButton = series.getByRole('button', { name: 'Save', exact: true });
+    await saveButton.click();
+    await expect(series.getByText('Saved', { exact: true })).toBeVisible({ timeout: 8_000 });
 
     // Restore to default INV to avoid interfering with other tests
-    await prefixInputs.first().fill('INV');
-    await saveButtons.first().click();
-    await expect(page.locator('text=Saved').first()).toBeVisible({ timeout: 8_000 });
+    await prefixInputs.fill('INV');
+    await saveButton.click();
+    await expect(series.getByText('Saved', { exact: true })).toBeVisible({ timeout: 8_000 });
   });
 
   test('year format dropdown includes FY option', async ({ authedPage: page }) => {
