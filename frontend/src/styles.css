@@ -402,6 +402,24 @@ textarea {
   font: inherit;
 }
 
+/* Keep native check/radio appearance and keyboard behaviour, with room to tap. */
+input[type='checkbox'],
+input[type='radio'] {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+label:has(> input[type='checkbox']),
+label:has(> input[type='radio']),
+input[type='checkbox'] + label,
+input[type='radio'] + label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
