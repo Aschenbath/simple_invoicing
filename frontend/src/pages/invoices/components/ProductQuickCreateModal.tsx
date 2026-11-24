@@ -28,6 +28,10 @@ type ProductQuickCreateModalProps = {
 const UNIT_OPTIONS = ['Pieces', 'Kg', 'g', 'm', 'l', 'Ounce'];
 const CUSTOM_UNIT_VALUE = '__custom__';
 
+function RequiredMark() {
+  return <span className="required-mark" aria-hidden="true" title="Required">*</span>;
+}
+
 /* Serial tracking is asked for here and nowhere else in the composer, so it
    rides along locally rather than widening the shared form state. */
 
@@ -160,7 +164,7 @@ export default function ProductQuickCreateModal({ countsStockByDefault }: Produc
 
         <form id="product-quick-create-form" className="stack" onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="modal-product-name">Product name</label>
+            <label htmlFor="modal-product-name">Product name <RequiredMark /></label>
             <input
               id="modal-product-name"
               className="input"
@@ -191,7 +195,7 @@ export default function ProductQuickCreateModal({ countsStockByDefault }: Produc
             />
           </div>
           <div className="field">
-            <label htmlFor="modal-product-price">Unit price</label>
+            <label htmlFor="modal-product-price">Unit price <RequiredMark /></label>
             <input
               id="modal-product-price"
               className="input"
@@ -205,7 +209,7 @@ export default function ProductQuickCreateModal({ countsStockByDefault }: Produc
             />
           </div>
           <div className="field">
-            <label htmlFor="modal-product-gst-rate">GST %</label>
+            <label htmlFor="modal-product-gst-rate">GST % <RequiredMark /></label>
             <GstRateSelect id="modal-product-gst-rate" value={productForm.gst_rate} onChange={(rate) => setProductForm((current) => ({ ...current, gst_rate: rate }))} />
           </div>
           <div className="field field--full" style={{ marginBottom: 0 }}>
@@ -213,23 +217,27 @@ export default function ProductQuickCreateModal({ countsStockByDefault }: Produc
               <input
                 id="modal-product-maintain-inventory"
                 type="checkbox"
+                aria-describedby="modal-product-inventory-hint"
                 checked={productForm.maintain_inventory}
                 disabled={productForm.track_serials}
                 onChange={(event) => setProductForm((current) => ({ ...current, maintain_inventory: event.target.checked }))}
               />
               Maintain inventory for this product
             </label>
-            <small className="field-hint">
+            <small className="field-hint" id="modal-product-inventory-hint">
+              {countsStockByDefault
+                ? 'Starts on because this company already counts stock. '
+                : 'Starts off because this company does not count stock yet. '}
               {productForm.track_serials
                 ? 'Always on while serial numbers are tracked — every serial is a unit of stock.'
                 : productForm.maintain_inventory
-                  ? 'Untick this for services and anything you do not count. A counted item can only be sold while it is in stock.'
+                  ? 'On: a counted item can only be sold while it is in stock. Untick this for services and anything you do not count.'
                   : 'Off: you can bill this item in any quantity. Tick it to keep count of how many you have.'}
             </small>
           </div>
           {asksOpeningStock ? (
             <div className="field">
-              <label htmlFor="modal-product-opening-stock">Opening stock</label>
+              <label htmlFor="modal-product-opening-stock">Opening stock <RequiredMark /></label>
               <input
                 ref={openingStockRef}
                 id="modal-product-opening-stock"
@@ -269,7 +277,7 @@ export default function ProductQuickCreateModal({ countsStockByDefault }: Produc
           </div>
           {UNIT_OPTIONS.includes(productForm.unit) ? null : (
             <div className="field">
-              <label htmlFor="modal-product-custom-unit">Custom unit</label>
+              <label htmlFor="modal-product-custom-unit">Custom unit <RequiredMark /></label>
               <input
                 id="modal-product-custom-unit"
                 className="input"

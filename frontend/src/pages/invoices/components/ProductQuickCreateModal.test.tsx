@@ -40,11 +40,13 @@ describe('ProductQuickCreateModal stock counting (issue 983)', () => {
     expect(stockBox(html)).not.toContain('checked');
     expect(html).not.toContain('id="modal-product-opening-stock"');
     expect(html).toContain('you can bill this item in any quantity');
+    expect(html).toContain('Starts off because this company does not count stock yet.');
   });
 
   it('keeps stock counting on, and asks for opening stock, where the company already counts stock', () => {
     const html = renderOpenModal(true);
     expect(stockBox(html)).toContain('checked');
+    expect(html).toContain('Starts on because this company already counts stock.');
     expect(html).toMatch(/<input[^>]*id="modal-product-opening-stock"[^>]*required/);
   });
 });
