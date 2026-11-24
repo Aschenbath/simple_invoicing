@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { buildRangePresets, matchPreset, type DateRange } from '../utils/dateRanges';
+import { buildRangePresets, matchPreset, type DateRange, type RangePreset } from '../utils/dateRanges';
 
 /**
  * One-click ranges beside the two date inputs. A reporting range is almost
@@ -12,15 +12,17 @@ export default function DateRangePresets({
   onChange,
   fy,
   label = 'Range',
+  presets: suppliedPresets,
 }: {
   value: DateRange;
   onChange: (range: DateRange) => void;
   fy?: { start_date: string; end_date: string } | null;
   label?: string;
+  presets?: RangePreset[];
 }) {
   // Rebuilt only when the financial year changes; "today" moving under a page
   // that is already open is not a case worth a timer.
-  const presets = useMemo(() => buildRangePresets(fy), [fy]);
+  const presets = useMemo(() => suppliedPresets ?? buildRangePresets(fy), [fy, suppliedPresets]);
   const active = matchPreset(presets, value);
 
   return (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api, { getApiErrorMessage, getBlobErrorMessage } from '../api/client';
 import StatusToasts from '../components/StatusToasts';
@@ -12,6 +12,7 @@ import type { CompanyProfile, Gstr1Summary, Gstr1ValidationResult } from '../typ
 import formatCurrency from '../utils/formatting';
 import { defaultFilingPeriod } from '../utils/dateRanges';
 import { zeroRateSalesNote } from '../utils/gstr1Notes';
+import { worksheetPresets } from '../features/gstr3b/period';
 
 type Gstr1Step = 'select-period' | 'validate' | 'summary';
 
@@ -25,6 +26,7 @@ export default function Gstr1FilingPage() {
   const { activeFY } = useFY();
 
   const [period, setPeriod] = useState(() => defaultFilingPeriod(activeFY));
+  const filingPresets = useMemo(() => worksheetPresets(), []);
   const periodEdited = useRef(false);
   const [step, setStep] = useState<Gstr1Step>('select-period');
   const [validation, setValidation] = useState<Gstr1ValidationResult | null>(null);
@@ -192,7 +194,7 @@ export default function Gstr1FilingPage() {
           entirely on steps 2 and 3, so the figures on screen stopped saying
           which months they were for. */}
       <ScopeBar
-        presets={<DateRangePresets value={period} onChange={changePeriod} fy={activeFY} label="Filing period" />}
+        presets={<DateRangePresets value={period} onChange={changePeriod} presets={filingPresets} label="Filing period" />}
         metrics={validation ? (
           <>
             <Metric label="Invoices checked" value={validation.total_invoices} />
