@@ -117,6 +117,8 @@ describe('GetStartedCard', () => {
   it('lists the steps, marks bank optional and links the Quick start', () => {
     const html = render({ customer: false, product: false, invoice: false, bank: false });
     expect(html).toContain('Add a customer');
+    expect(html).toContain('href="/invoices?add=customer"');
+    expect(html).not.toContain('href="/ledgers/new"');
     expect(html).toContain('Add a product');
     expect(html).toContain('Counting its stock is optional.');
     expect(html).toContain('Create your first invoice');
@@ -127,7 +129,7 @@ describe('GetStartedCard', () => {
 
   it('shows finished steps as done without an action link', () => {
     const html = render({ customer: true, product: false, invoice: false, bank: false });
-    expect(html).not.toContain('href="/ledgers/new"');
+    expect(html).not.toContain('href="/invoices?add=customer"');
     expect(html).toContain('Done');
   });
 

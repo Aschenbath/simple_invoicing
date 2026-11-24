@@ -27,7 +27,7 @@ const STEPS: Array<{
   action: string;
   optional?: boolean;
 }> = [
-  { id: 'customer', title: 'Add a customer', copy: 'Who you sell to.', to: '/ledgers/new', action: 'Add customer' },
+  { id: 'customer', title: 'Add a customer', copy: 'Who you sell to.', to: '/invoices?add=customer', action: 'Add customer' },
   {
     id: 'product',
     title: 'Add a product',

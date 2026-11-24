@@ -261,6 +261,18 @@ export default function InvoicesPage() {
     // No customer or product is chosen for the user: a pre-picked first ledger could be invoiced unnoticed.
   }, [composerQuery.data]);
 
+  // The dashboard's first customer step uses this sheet too. Consume the
+  // request so a refresh or a later visit does not reopen it after saving.
+  useEffect(() => {
+    if (searchParams.get('add') !== 'customer') return;
+    openLedgerCreateModal();
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('add');
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams, openLedgerCreateModal]);
+
   // Fetch ledger addresses when ledger selection changes (for shipping address UI)
   useEffect(() => {
     if (!selectedLedgerId) {
