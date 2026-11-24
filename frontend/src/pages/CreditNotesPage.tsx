@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FilePlus2, FileText, RefreshCw, Search, XCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { cancelCreditNote, createCreditNote, listCreditNotes } from '../api/creditNotes';
 import api, { getApiErrorMessage } from '../api/client';
 import CreditNotePreview from '../components/CreditNotePreview';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { noteDocumentLabel, noteViewButtonLabel } from '../utils/noteDocument';
 import LedgerCombobox from '../components/LedgerCombobox';
 import StatusToasts from '../components/StatusToasts';
@@ -27,6 +28,7 @@ import formatCurrency, { formatDate, plural } from '../utils/formatting';
 import { roundMoney } from '../utils/invoiceTotals';
 import { backdatedNoteWarning, creditNoteDateChoice as nextCreditNoteDateChoice, shownCreditNoteDate } from '../utils/creditNoteDate';
 import { creditNoteInvoiceLabels } from '../utils/creditNoteInvoices';
+import { creditNoteCancelMessage } from '../utils/creditNoteCancelMessage';
 import { billedLineAmounts, returnPreviewTotal } from '../utils/creditNoteAmounts';
 import { toIsoDate } from '../utils/dateRanges';
 import { exportCreditNotesCsv } from './credit-notes/exports';
@@ -88,6 +90,9 @@ export default function CreditNotesPage() {
   const [exporting, setExporting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<CreditNote | null>(null);
+  const cancelInFlight = useRef(false);
+  const cancelTrigger = useRef<HTMLButtonElement | null>(null);
   const [previewCreditNote, setPreviewCreditNote] = useState<CreditNote | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -123,6 +128,17 @@ export default function CreditNotesPage() {
   }, []);
 
   const currencyCode = company?.currency_code || 'INR';
+
+  useEffect(() => {
+    if (!cancelTarget) return;
+    const trigger = cancelTrigger.current;
+    document.querySelector<HTMLButtonElement>('[aria-labelledby="confirm-dialog-title"] button')?.focus();
+    return () => {
+      // After a successful cancellation its cancel button no longer exists.
+      const next = trigger?.isConnected ? trigger : document.querySelector<HTMLButtonElement>(`#credit-note-${cancelTarget.id} button`);
+      next?.focus();
+    };
+  }, [cancelTarget]);
 
   // A note only ever covers one voucher type, so the picker only ever offers
   // one. Mixing them was possible before and produced a note the ledger, the
@@ -526,9 +542,14 @@ export default function CreditNotesPage() {
   }
 
   async function handleCancelCreditNote(creditNoteId: number) {
+    if (cancelInFlight.current) return;
+    cancelInFlight.current = true;
     try {
+      setError('');
       setCancellingId(creditNoteId);
-      await cancelCreditNote(creditNoteId);
+      const response = await cancelCreditNote(creditNoteId);
+      setCreditNotes((current) => current.map((note) => note.id === creditNoteId ? response.data : note));
+      setCancelTarget(null);
       setSuccess('Credit note cancelled.');
       setRefreshKey((value) => value + 1);
 
@@ -552,6 +573,7 @@ export default function CreditNotesPage() {
     } catch (err) {
       setError(getApiErrorMessage(err, 'Unable to cancel credit note'));
     } finally {
+      cancelInFlight.current = false;
       setCancellingId(null);
     }
   }
@@ -1063,7 +1085,10 @@ export default function CreditNotesPage() {
                         type="button"
                         className="button button--danger"
                         disabled={cancellingId === creditNote.id}
-                        onClick={() => void handleCancelCreditNote(creditNote.id)}
+                        onClick={(event) => {
+                          cancelTrigger.current = event.currentTarget;
+                          setCancelTarget(creditNote);
+                        }}
                       >
                         {cancellingId === creditNote.id ? 'Cancelling...' : 'Cancel credit note'}
                       </button>
@@ -1088,6 +1113,24 @@ export default function CreditNotesPage() {
           ) : null}
         </article>
       </section>
+
+      {cancelTarget ? (
+        <ConfirmDialog
+          title={`Cancel ${cancelTarget.credit_note_number}?`}
+          message={creditNoteCancelMessage(
+            cancelTarget,
+            ledgers.find((ledger) => ledger.id === cancelTarget.ledger_id)?.name || `Ledger #${cancelTarget.ledger_id}`,
+            creditNoteInvoiceLabels(cancelTarget.invoice_ids, allInvoices),
+            currencyCode,
+          )}
+          confirmText={cancellingId === cancelTarget.id ? 'Cancelling...' : 'Cancel credit note'}
+          cancelText="Keep it"
+          danger
+          confirmDisabled={cancellingId !== null}
+          onConfirm={() => void handleCancelCreditNote(cancelTarget.id)}
+          onCancel={() => { if (!cancelInFlight.current) setCancelTarget(null); }}
+        />
+      ) : null}
 
       {previewCreditNote ? (
         <CreditNotePreview
