@@ -411,10 +411,12 @@ input[type='radio'] {
   vertical-align: middle;
 }
 
-label:has(> input[type='checkbox']),
-label:has(> input[type='radio']),
-input[type='checkbox'] + label,
-input[type='radio'] + label {
+:where(
+  label:has(> input[type='checkbox']),
+  label:has(> input[type='radio']),
+  input[type='checkbox'] + label,
+  input[type='radio'] + label
+) {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
