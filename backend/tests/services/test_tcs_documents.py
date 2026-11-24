@@ -102,12 +102,12 @@ def test_quotation_without_tcs_has_no_tcs():
 def _email(**extra):
     return email_routes._jinja_env.get_template("invoice_email.html").render(
         company_name="Mofna", invoice_number="INV-1", invoice_date="01 Jun 2026",
-        buyer_name="Acme", total_amount="1,20,360.00", items_count=1, currency="₹", **extra,
+        buyer_name="Acme", total_amount="₹1,20,360.00", items_count=1, **extra,
     )
 
 
 def test_email_shows_tcs_line():
-    html = _email(tcs_label=LABEL, tcs_amount="2,360.00")
+    html = _email(tcs_label=LABEL, tcs_amount="₹2,360.00")
     assert LABEL in html and "₹2,360.00" in html
 
 

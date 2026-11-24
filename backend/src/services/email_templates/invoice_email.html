@@ -2,16 +2,17 @@
   invoice_email.html — Email sent to a buyer when an invoice is issued.
   Extends base.html.
 
+  Amount strings include the currency symbol and currency-specific grouping (Indian for INR).
+
   Variables (in addition to base.html variables):
     invoice_number  (str)         — Invoice identifier, e.g. "INV-2026-001"
     invoice_date    (str)         — Human-readable invoice date, e.g. "01 Apr 2026"
     due_date        (str|None)    — Payment due date; omitted if not provided
     buyer_name      (str)         — Buyer / party name
-    total_amount    (str|number)  — Formatted invoice total, e.g. "12,500.00"
+    total_amount    (str)         — Formatted invoice total, e.g. "₹1,25,000.00"
     tcs_label       (str|None)    — TCS line wording; omitted when the invoice has no TCS
     tcs_amount      (str|None)    — Formatted TCS amount included in the total
     items_count     (int)         — Number of line items on the invoice
-    currency        (str)         — Currency symbol. Default: "₹"
     message         (str|None)    — Optional custom message from the sender
     share_url       (str|None)    — Public share page for this invoice; drives the button
 #}
@@ -24,17 +25,16 @@
 {{ ui.letter(buyer_name, message,
              "Please find attached invoice " ~ invoice_number ~ " for your reference. The summary is below.") }}
 
-{% set total = (currency | default("₹")) ~ total_amount %}
 {% set items = [
     ("Billed to", buyer_name, None),
     ("Invoice date", invoice_date, None),
 ] %}
 {% if due_date %}{% set items = items + [("Due date", due_date, "alert")] %}{% endif %}
-{% if tcs_label and tcs_amount %}{% set items = items + [(tcs_label, (currency | default("₹")) ~ tcs_amount, None)] %}{% endif %}
+{% if tcs_label and tcs_amount %}{% set items = items + [(tcs_label, tcs_amount, None)] %}{% endif %}
 {% set items = items + [("Items", items_count ~ " item" ~ ("" if items_count == 1 else "s"), None)] %}
 
 {% call ui.recap("Invoice from " ~ (company_name or "us"), "Invoice " ~ invoice_number) %}
-    {{ ui.amount("Total amount", total) }}
+    {{ ui.amount("Total amount", total_amount) }}
     {{ ui.rows(items) }}
     {% if share_url %}
     {# A link rather than an embedded QR: the reader is already in something that

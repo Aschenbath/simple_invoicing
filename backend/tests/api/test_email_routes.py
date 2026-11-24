@@ -13,6 +13,7 @@ from src.models.buyer import Buyer
 from src.models.company import CompanyProfile
 from src.models.email_log import EmailLog
 from src.models.invoice import Invoice
+from src.models.payment import Payment
 from src.models.smtp_config import SMTPConfig
 from src.models.user import User, UserRole
 from src.services import mail
@@ -119,6 +120,72 @@ def test_invoice_email_shows_the_due_date(client, db_session, monkeypatch, recip
         assert expected in html_body
     else:
         assert "Due date" not in html_body
+
+
+@pytest.mark.parametrize("kind", ["invoice", "payment-reminder", "due-reminders"])
+@pytest.mark.parametrize(
+    ("currency", "expected"),
+    [("INR", "₹1,00,000.00"), ("USD", "$100,000.00"), ("EUR", "€100,000.00"),
+     ("GBP", "£100,000.00"), (None, "₹1,00,000.00")],
+)
+@pytest.mark.parametrize("recipients", [1], indirect=True)
+def test_email_amounts_use_the_company_currency(
+    client, db_session, monkeypatch, recipients, kind, currency, expected,
+):
+    company = db_session.get(CompanyProfile, 1)
+    company.currency_code = currency
+    invoice = db_session.get(Invoice, recipients[0][1])
+    invoice.company_currency_code = None
+    invoice.taxable_amount = invoice.total_amount = 100_000
+    db_session.commit()
+    send = AsyncMock()
+    monkeypatch.setattr(email_routes, "send_email", send)
+
+    response = (client.post("/api/email/due-reminders", json={}) if kind == "due-reminders"
+                else _send(client, kind, recipients[0]))
+
+    assert response.status_code == 200, response.text
+    send.assert_awaited_once()
+    html_body = send.call_args.kwargs["html_body"]
+    # A reminder includes the balance and the remaining amount of its invoice.
+    assert html_body.count(expected) == (1 if kind == "invoice" else 2)
+    assert "₹₹" not in html_body
+
+
+@pytest.mark.parametrize(
+    ("received", "label", "balance"),
+    [(1_250_000, "In credit", "₹11,50,000.00"),
+     (0, "Balance due", "₹1,00,000.00"),
+     (100_000, "Balance due", "₹0.00")],
+)
+@pytest.mark.parametrize("recipients", [1], indirect=True)
+def test_statement_email_labels_credit_and_formats_its_absolute_balance(
+    client, db_session, monkeypatch, recipients, received, label, balance,
+):
+    ledger_id, invoice_id, _ = recipients[0]
+    invoice = db_session.get(Invoice, invoice_id)
+    invoice.taxable_amount = invoice.total_amount = 100_000
+    if received:
+        db_session.add(Payment(
+            company_id=1, ledger_id=ledger_id, created_by=1, amount=received,
+            date=datetime(2026, 2, 2), voucher_type="receipt", status="active",
+        ))
+    db_session.commit()
+    send = AsyncMock()
+    monkeypatch.setattr(email_routes, "send_email", send)
+
+    response = _send(client, "ledger-statement", recipients[0])
+
+    assert response.status_code == 200, response.text
+    send.assert_awaited_once()
+    html_body = send.call_args.kwargs["html_body"]
+    assert label in html_body
+    assert balance in html_body
+    assert "₹1,00,000.00" in html_body
+    assert "₹-" not in html_body and "-₹" not in html_body
+    if received > 100_000:
+        assert "Balance due" not in html_body
+        assert "₹12,50,000.00" in html_body
 
 
 @pytest.mark.parametrize(
