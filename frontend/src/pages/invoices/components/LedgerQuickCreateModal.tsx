@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import ModalCloseButton from '../../../components/ModalCloseButton';
 import GstinInput from '../../../components/GstinInput';
 import { useQueryClient } from '@tanstack/react-query';
@@ -7,6 +7,8 @@ import type { LedgerCreate } from '../../../types/api';
 import { useEscapeClose } from '../../../hooks/useEscapeClose';
 import { invoiceQueryKeys } from '../../../features/invoices/queryKeys';
 import { useInvoiceComposerStore } from '../../../store/useInvoiceComposerStore';
+import { counterpartyFor } from '../counterparty';
+import { hasLedgerDetails } from '../../../utils/ledgerQuickCreate';
 import {
   applyOpeningBalanceSide,
   openingBalanceMagnitude,
@@ -33,29 +35,41 @@ function createInitialLedgerForm(): LedgerCreate {
   };
 }
 
-export default function LedgerQuickCreateModal() {
+export default function LedgerQuickCreateModal({ voucherType = 'sales' }: { voucherType?: string }) {
   const queryClient = useQueryClient();
   const showLedgerCreateModal = useInvoiceComposerStore((state) => state.showLedgerCreateModal);
   const closeLedgerCreateModal = useInvoiceComposerStore((state) => state.closeLedgerCreateModal);
   const setSelectedLedgerId = useInvoiceComposerStore((state) => state.setSelectedLedgerId);
-  const setFeedbackError = useInvoiceComposerStore((state) => state.setFeedbackError);
   const setFeedbackSuccess = useInvoiceComposerStore((state) => state.setFeedbackSuccess);
   const [ledgerForm, setLedgerForm] = useState<LedgerCreate>(createInitialLedgerForm());
   const [ledgerOpeningBalanceSide, setLedgerOpeningBalanceSide] = useState<OpeningBalanceSide>('debit');
   const [ledgerSubmitting, setLedgerSubmitting] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [nameError, setNameError] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const nameInput = useRef<HTMLInputElement>(null);
+  const counterparty = counterpartyFor(voucherType);
+  const detailsExpanded = detailsOpen || hasLedgerDetails(ledgerForm);
 
   useEscapeClose(() => {
-    if (showLedgerCreateModal) {
+    if (showLedgerCreateModal && !ledgerSubmitting) {
       closeLedgerCreateModal();
     }
   });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (ledgerSubmitting) return;
+    if (!ledgerForm.name.trim()) {
+      setNameError(true);
+      nameInput.current?.focus();
+      return;
+    }
 
     try {
       setLedgerSubmitting(true);
-      setFeedbackError('');
+      setSubmitError('');
+      setNameError(false);
 
       const payload: LedgerCreate = {
         name: ledgerForm.name.trim(),
@@ -78,11 +92,12 @@ export default function LedgerQuickCreateModal() {
       setSelectedLedgerId(String(response.data.id));
       setLedgerForm(createInitialLedgerForm());
       setLedgerOpeningBalanceSide('debit');
+      setDetailsOpen(false);
       closeLedgerCreateModal();
-      setFeedbackSuccess('Ledger added and selected for this invoice.');
+      setFeedbackSuccess(`${counterparty.label} added and selected for this bill.`);
       await queryClient.invalidateQueries({ queryKey: invoiceQueryKeys.all });
     } catch (err) {
-      setFeedbackError(getApiErrorMessage(err, 'Unable to create ledger'));
+      setSubmitError(getApiErrorMessage(err, `Unable to add ${counterparty.noun}`));
     } finally {
       setLedgerSubmitting(false);
     }
@@ -93,46 +108,57 @@ export default function LedgerQuickCreateModal() {
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ledger-modal-title">
-      <div className="modal-panel">
+    <div className="modal-overlay ledger-quick-create" role="dialog" aria-modal="true" aria-labelledby="ledger-modal-title">
+      <div className="modal-panel ledger-quick-create__panel">
         <div className="panel__header">
           <div>
-            <p className="eyebrow">Quick add</p>
-            <h2 id="ledger-modal-title" className="nav-panel__title">Create ledger</h2>
+            <h2 id="ledger-modal-title" className="nav-panel__title">Add {counterparty.noun}</h2>
           </div>
-          {/* Save lives in the pinned header, not under fourteen fields. At the
-              bottom it sat below the panel's scroll edge, out of sight and out of
-              reach of the walkthrough's highlight, and new users never found it. */}
           <div className="panel__header-actions">
-            <button
-              type="submit"
-              form="ledger-quick-create-form"
-              data-tour="save-customer"
-              className="button button--primary"
-              disabled={ledgerSubmitting}
-              title="Save ledger"
-              aria-label="Save ledger"
-            >
-              {ledgerSubmitting ? 'Saving...' : 'Save'}
-            </button>
-            <ModalCloseButton onClick={closeLedgerCreateModal} label="Close create ledger" disabled={ledgerSubmitting} />
+            <ModalCloseButton onClick={closeLedgerCreateModal} label={`Close add ${counterparty.noun}`} disabled={ledgerSubmitting} />
           </div>
         </div>
 
-        <form id="ledger-quick-create-form" className="stack" onSubmit={handleSubmit}>
+        <form id="ledger-quick-create-form" className="stack ledger-quick-create__form" onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="modal-ledger-name">Name *</label>
+            <label htmlFor="modal-ledger-name">{counterparty.label} name *</label>
             <input
+              ref={nameInput}
               id="modal-ledger-name"
               className="input"
               value={ledgerForm.name}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Sharma Traders"
+              onChange={(event) => {
+                setLedgerForm((current) => ({ ...current, name: event.target.value }));
+                setNameError(false);
+              }}
+              onInvalid={(event) => {
+                event.preventDefault();
+                setNameError(true);
+                nameInput.current?.focus();
+              }}
+              aria-invalid={nameError || undefined}
+              aria-describedby={nameError ? 'modal-ledger-name-error' : undefined}
+              placeholder="e.g. Ramesh Kumar or Sharma Traders"
+              autoFocus
               required
             />
+            {nameError && <small id="modal-ledger-name-error" className="field-error">Enter the {counterparty.noun}'s name</small>}
           </div>
           <div className="field">
-            <label htmlFor="modal-ledger-gst">GSTIN</label>
+            <label htmlFor="modal-ledger-phone">Phone (optional)</label>
+            <input
+              id="modal-ledger-phone"
+              className="input"
+              type="tel"
+              inputMode="tel"
+              value={ledgerForm.phone_number}
+              onChange={(event) => setLedgerForm((current) => ({ ...current, phone_number: event.target.value }))}
+              placeholder="98765 43210"
+            />
+            <small className="field-hint">For WhatsApp bills and payment reminders</small>
+          </div>
+          <div className="field">
+            <label htmlFor="modal-ledger-gst">GSTIN (optional)</label>
             <GstinInput
               id="modal-ledger-gst"
               className="input"
@@ -142,141 +168,155 @@ export default function LedgerQuickCreateModal() {
               pattern="^$|[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][A-Za-z0-9]Z[A-Za-z0-9]$"
               title="Enter a valid 15-character GSTIN (e.g. 27ABCDE1234F1Z0), or leave blank"
             />
-            <small className="field-hint">Optional. If entered, format must be 27ABCDE1234F1Z0.</small>
+            <small className="field-hint">Only for business {counterparty.noun}s. Leave blank for walk-in {counterparty.noun}s.</small>
           </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-phone">Phone number</label>
-            <input
-              id="modal-ledger-phone"
-              className="input"
-              value={ledgerForm.phone_number}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, phone_number: event.target.value }))}
-              placeholder="+91 9876543210"
-            />
-          </div>
-          <div className="field field--full">
-            <label htmlFor="modal-ledger-opening-balance">Opening balance</label>
-            <div className="opening-balance-group">
-              <div className="opening-balance-group__amount">
-                <input
-                  id="modal-ledger-opening-balance"
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={openingBalanceMagnitude(ledgerForm.opening_balance) ?? ''}
-                  onChange={(event) =>
-                    setLedgerForm((current) => ({
-                      ...current,
-                      opening_balance: parseOpeningBalanceInput(event.target.value, ledgerOpeningBalanceSide),
-                    }))
-                  }
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="opening-balance-group__type">
-                <label htmlFor="modal-ledger-opening-balance-side">Type</label>
-                <select
-                  id="modal-ledger-opening-balance-side"
-                  className="select"
-                  value={ledgerOpeningBalanceSide}
-                  onChange={(event) => {
-                    const nextSide = event.target.value as OpeningBalanceSide;
-                    setLedgerOpeningBalanceSide(nextSide);
-                    setLedgerForm((current) => ({
-                      ...current,
-                      opening_balance: applyOpeningBalanceSide(current.opening_balance, nextSide),
-                    }));
-                  }}
-                >
-                  <option value="debit">Debit</option>
-                  <option value="credit">Credit</option>
-                </select>
-              </div>
+          <button
+            type="button"
+            className="button button--ghost ledger-quick-create__toggle"
+            aria-expanded={detailsExpanded}
+            aria-controls="ledger-quick-create-details"
+            onClick={() => setDetailsOpen(!detailsExpanded)}
+          >
+            <span>More details {detailsExpanded ? '▴' : '▾'}</span>
+            <small>Address, email, old balance, bank</small>
+          </button>
+          <div id="ledger-quick-create-details" className="stack ledger-quick-create__details" hidden={!detailsExpanded}>
+            <div className="field">
+              <label htmlFor="modal-ledger-address">Address</label>
+              <textarea
+                id="modal-ledger-address"
+                className="textarea"
+                value={ledgerForm.address}
+                onChange={(event) => setLedgerForm((current) => ({ ...current, address: event.target.value }))}
+                placeholder="12 MG Road, Pune, Maharashtra 411001"
+              />
             </div>
-            <small className="field-hint">Enter the amount only. Choose debit or credit separately. Leave blank for none.</small>
-          </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-email">Email</label>
-            <input
-              id="modal-ledger-email"
-              className="input"
-              value={ledgerForm.email}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, email: event.target.value }))}
-              placeholder="accounts@example.com"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-website">Website</label>
-            <input
-              id="modal-ledger-website"
-              className="input"
-              value={ledgerForm.website}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, website: event.target.value }))}
-              placeholder="https://www.example.com"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-address">Address</label>
-            <textarea
-              id="modal-ledger-address"
-              className="textarea"
-              value={ledgerForm.address}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, address: event.target.value }))}
-              placeholder="12 MG Road, Pune, Maharashtra 411001"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-bank-name">Bank name</label>
-            <input
-              id="modal-ledger-bank-name"
-              className="input"
-              value={ledgerForm.bank_name}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, bank_name: event.target.value }))}
-              placeholder="HDFC Bank"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-branch-name">Branch</label>
-            <input
-              id="modal-ledger-branch-name"
-              className="input"
-              value={ledgerForm.branch_name}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, branch_name: event.target.value }))}
-              placeholder="Bandra West"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-account-name">Account holder</label>
-            <input
-              id="modal-ledger-account-name"
-              className="input"
-              value={ledgerForm.account_name}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, account_name: event.target.value }))}
-              placeholder="Sharma Traders"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-account-number">Account number</label>
-            <input
-              id="modal-ledger-account-number"
-              className="input"
-              value={ledgerForm.account_number}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, account_number: event.target.value }))}
-              placeholder="123456789012"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="modal-ledger-ifsc">IFSC</label>
-            <input
-              id="modal-ledger-ifsc"
-              className="input"
-              value={ledgerForm.ifsc_code}
-              onChange={(event) => setLedgerForm((current) => ({ ...current, ifsc_code: event.target.value }))}
-              placeholder="HDFC0001234"
-            />
+            <div className="field">
+              <label htmlFor="modal-ledger-email">Email</label>
+              <input
+                id="modal-ledger-email"
+                className="input"
+                value={ledgerForm.email}
+                onChange={(event) => setLedgerForm((current) => ({ ...current, email: event.target.value }))}
+                placeholder="accounts@example.com"
+              />
+            </div>
+            <div className="field field--full">
+              <label htmlFor="modal-ledger-opening-balance">Old balance (udhaar)</label>
+              <div className="opening-balance-group">
+                <div className="opening-balance-group__amount">
+                  <input
+                    id="modal-ledger-opening-balance"
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={openingBalanceMagnitude(ledgerForm.opening_balance) ?? ''}
+                    onChange={(event) =>
+                      setLedgerForm((current) => ({
+                        ...current,
+                        opening_balance: parseOpeningBalanceInput(event.target.value, ledgerOpeningBalanceSide),
+                      }))
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="opening-balance-group__type">
+                  <label htmlFor="modal-ledger-opening-balance-side">Who owes whom?</label>
+                  <select
+                    id="modal-ledger-opening-balance-side"
+                    className="select"
+                    value={ledgerOpeningBalanceSide}
+                    onChange={(event) => {
+                      const nextSide = event.target.value as OpeningBalanceSide;
+                      setLedgerOpeningBalanceSide(nextSide);
+                      setLedgerForm((current) => ({
+                        ...current,
+                        opening_balance: applyOpeningBalanceSide(current.opening_balance, nextSide),
+                      }));
+                    }}
+                  >
+                    <option value="debit">They owe me</option>
+                    <option value="credit">I owe them</option>
+                  </select>
+                </div>
+              </div>
+              <small className="field-hint">Leave blank if there is no old balance.</small>
+            </div>
+            <div className="field">
+              <label htmlFor="modal-ledger-website">Website</label>
+              <input
+                id="modal-ledger-website"
+                className="input"
+                value={ledgerForm.website}
+                onChange={(event) => setLedgerForm((current) => ({ ...current, website: event.target.value }))}
+                placeholder="https://www.example.com"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="modal-ledger-bank-name">Bank name</label>
+              <input
+                id="modal-ledger-bank-name"
+                className="input"
+                value={ledgerForm.bank_name}
+                onChange={(event) => setLedgerForm((current) => ({ ...current, bank_name: event.target.value }))}
+                placeholder="HDFC Bank"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="modal-ledger-branch-name">Branch</label>
+              <input
+                id="modal-ledger-branch-name"
+                className="input"
+                value={ledgerForm.branch_name}
+                onChange={(event) => setLedgerForm((current) => ({ ...current, branch_name: event.target.value }))}
+                placeholder="Bandra West"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="modal-ledger-account-name">Account holder</label>
+              <input
+                id="modal-ledger-account-name"
+                className="input"
+                value={ledgerForm.account_name}
+                onChange={(event) => setLedgerForm((current) => ({ ...current, account_name: event.target.value }))}
+                placeholder="Sharma Traders"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="modal-ledger-account-number">Account number</label>
+              <input
+                id="modal-ledger-account-number"
+                className="input"
+                value={ledgerForm.account_number}
+                onChange={(event) => setLedgerForm((current) => ({ ...current, account_number: event.target.value }))}
+                placeholder="123456789012"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="modal-ledger-ifsc">IFSC</label>
+              <input
+                id="modal-ledger-ifsc"
+                className="input"
+                value={ledgerForm.ifsc_code}
+                onChange={(event) => setLedgerForm((current) => ({ ...current, ifsc_code: event.target.value }))}
+                placeholder="HDFC0001234"
+              />
+            </div>
           </div>
         </form>
+        <div className="ledger-quick-create__footer">
+          {submitError && <p className="field-error" role="alert">{submitError}</p>}
+          <button
+            type="submit"
+            form="ledger-quick-create-form"
+            data-tour="save-customer"
+            className="button button--primary"
+            disabled={ledgerSubmitting}
+          >
+            {ledgerSubmitting ? 'Saving…' : `Save ${counterparty.noun}`}
+          </button>
+        </div>
       </div>
     </div>
   );

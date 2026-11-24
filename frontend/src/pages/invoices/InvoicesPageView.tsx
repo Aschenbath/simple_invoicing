@@ -2287,7 +2287,7 @@ export default function InvoicesPage() {
 
       </section>
 
-      <LedgerQuickCreateModal />
+      <LedgerQuickCreateModal voucherType={voucherType} />
 
       {previewInvoice ? (
         <InvoicePreview

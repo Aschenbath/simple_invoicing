@@ -3290,6 +3290,86 @@ a.invoice-row {
   width: min(980px, 100%);
 }
 
+.modal-overlay.ledger-quick-create {
+  place-items: center;
+}
+
+.ledger-quick-create__panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  overflow: hidden;
+}
+
+.ledger-quick-create__panel > .panel__header {
+  position: static;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 16px 20px;
+}
+
+.ledger-quick-create__form {
+  min-height: 0;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.ledger-quick-create .button--icon {
+  width: 44px;
+  height: 44px;
+}
+
+.ledger-quick-create .input,
+.ledger-quick-create .select {
+  min-height: 44px;
+}
+
+.ledger-quick-create__details[hidden] {
+  display: none;
+}
+
+.ledger-quick-create__toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+}
+
+.ledger-quick-create__toggle small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* The body scrolls independently so saving and request errors stay in reach. */
+.ledger-quick-create__footer {
+  display: grid;
+  gap: 12px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  padding: 16px 20px max(16px, env(safe-area-inset-bottom));
+  background: var(--bg-modal-header);
+}
+
+.ledger-quick-create__footer .button {
+  width: 100%;
+  min-height: 48px;
+}
+
+@media (max-width: 720px) {
+  .modal-overlay.ledger-quick-create {
+    place-items: end center;
+    padding: 12px 12px 0;
+  }
+
+  .ledger-quick-create__panel {
+    max-height: calc(100dvh - 24px);
+    border-radius: 24px 24px 0 0;
+  }
+}
+
 .invoice-pdf-viewer {
   margin-top: 16px;
   min-height: 72vh;

@@ -19,10 +19,10 @@ vi.mock('../../../store/useInvoiceComposerStore', () => {
 });
 
 /* No DOM here, so the open dialog is read back from server-rendered markup. */
-function renderOpenModal() {
+function renderOpenModal(voucherType = 'sales') {
   return renderToStaticMarkup(
     <QueryClientProvider client={new QueryClient()}>
-      <LedgerQuickCreateModal />
+      <LedgerQuickCreateModal voucherType={voucherType} />
     </QueryClientProvider>,
   );
 }
@@ -49,8 +49,43 @@ describe('LedgerQuickCreateModal (issue 955)', () => {
 
   it('does not mark phone or address with the required star', () => {
     const html = renderOpenModal();
-    expect(html).toContain('>Name *</label>');
-    expect(html).toContain('>Phone number</label>');
+    expect(html).toContain('>Customer name *</label>');
+    expect(html).toContain('>Phone (optional)</label>');
     expect(html).toContain('>Address</label>');
+  });
+});
+
+describe('short customer and supplier sheet (issue 975)', () => {
+  it.each(['sales', 'purchase', 'payment'])('uses the counterparty labels for %s', (voucherType) => {
+    const html = renderOpenModal(voucherType);
+    const noun = voucherType === 'sales' ? 'customer' : 'supplier';
+    expect(html).toContain(`>Add ${noun}</h2>`);
+    expect(html).toContain(`>Save ${noun}</button>`);
+    expect(html).not.toContain('Quick add');
+    expect(html).not.toContain('Create ledger');
+  });
+
+  it('starts with name, telephone and GSTIN, keeping optional fields behind the disclosure', () => {
+    const html = renderOpenModal();
+    expect(html.indexOf('modal-ledger-name')).toBeLessThan(html.indexOf('modal-ledger-phone'));
+    expect(html.indexOf('modal-ledger-phone')).toBeLessThan(html.indexOf('modal-ledger-gst'));
+    expect(html).toMatch(/id="ledger-quick-create-details"[^>]*hidden=""/);
+    expect(html).toContain('aria-expanded="false"');
+    expect(tagFor(html, 'modal-ledger-phone')).toContain('type="tel"');
+    expect(tagFor(html, 'modal-ledger-phone')).toContain('inputMode="tel"');
+    expect(tagFor(html, 'modal-ledger-name')).toContain('autofocus=""');
+    expect(html.indexOf('modal-ledger-address')).toBeLessThan(html.indexOf('modal-ledger-email'));
+    expect(html.indexOf('modal-ledger-email')).toBeLessThan(html.indexOf('modal-ledger-opening-balance'));
+    expect(html.indexOf('modal-ledger-opening-balance')).toBeLessThan(html.indexOf('modal-ledger-website'));
+    expect(html).toContain('<option value="debit" selected="">They owe me</option>');
+    expect(html).toContain('<option value="credit">I owe them</option>');
+  });
+
+  it('keeps the only Save control in the footer and associated with the form', () => {
+    const html = renderOpenModal();
+    expect(html.match(/type="submit"/g)).toHaveLength(1);
+    expect(html).toMatch(/ledger-quick-create__footer.*form="ledger-quick-create-form"/);
+    expect(html).toContain('data-tour="save-customer"');
+    expect(html.indexOf('</form>')).toBeLessThan(html.indexOf('type="submit"'));
   });
 });
