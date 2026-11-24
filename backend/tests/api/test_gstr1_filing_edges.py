@@ -86,6 +86,44 @@ def _by_field(result, field):
     return [e for e in result["errors"] if e["field"] == field]
 
 
+@pytest.mark.parametrize("gstin", [None, "", "   ", "INVALID", "29AAAAA0000A1Z!", "00AAAAA1234F1Z5"])
+@pytest.mark.parametrize("with_sale", [False, True])
+def test_company_gstin_blocks_validation_with_the_export_error(client, seller, db_session, gstin, with_sale):
+    if with_sale:
+        product = _create_product(client, "GST-1", "Widget", hsn_sac="8471")
+        buyer = _create_ledger(client, "Walk-in")
+        _sale(client, buyer, product)
+    seller.gst = gstin
+    db_session.commit()
+
+    result = _validate(client)
+    company_errors = _by_field(result, "Company GSTIN")
+    assert result["status"] == "invalid"
+    assert len(company_errors) == 1
+    error = company_errors[0]
+    assert error["severity"] == "error"
+    assert error["invoice_number"] == ""
+    assert "Settings" in error["message"]
+    assert result["total_invoices"] == int(with_sale)
+    assert result["valid_invoices"] == int(with_sale)
+    assert result["invalid_invoices"] == 0
+
+    response = client.get("/api/ledgers/tax-ledger/gstr1/export-json", params=_period())
+    assert response.status_code == 400
+    assert error["message"] in response.json()["detail"]
+
+
+def test_valid_company_gstin_allows_validation_and_export(client, seller):
+    product = _create_product(client, "GST-OK", "Widget", hsn_sac="8471")
+    buyer = _create_ledger(client, "Walk-in")
+    _sale(client, buyer, product)
+
+    result = _validate(client)
+    assert result["status"] == "valid"
+    assert not _by_field(result, "Company GSTIN")
+    assert _export(client)["gstin"] == HOME
+
+
 # ── 0% sales ───────────────────────────────────────────────────────────────────
 
 

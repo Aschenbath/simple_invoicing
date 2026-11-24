@@ -624,7 +624,7 @@ def test_gstr1_validate_passes_for_valid_sales_invoices(db_session):
         to_date=date(2026, 4, 30),
         db=db_session,
         _=user,
-        active_company=None,
+        active_company=_make_company(),
     )
 
     assert result.status == "valid"
@@ -674,7 +674,7 @@ def test_gstr1_validate_ignores_purchase_invoices(db_session):
         to_date=date(2026, 4, 30),
         db=db_session,
         _=user,
-        active_company=None,
+        active_company=_make_company(),
     )
 
     assert result.status == "invalid"
@@ -713,7 +713,7 @@ def test_gstr1_validate_detects_missing_gstin(db_session):
         to_date=date(2026, 5, 31),
         db=db_session,
         _=user,
-        active_company=None,
+        active_company=_make_company(),
     )
 
     # A missing buyer GSTIN is a B2C supply — it must NOT block filing.
@@ -751,7 +751,7 @@ def test_gstr1_validate_detects_invalid_gstin(db_session):
         to_date=date(2026, 6, 30),
         db=db_session,
         _=user,
-        active_company=None,
+        active_company=_make_company(),
     )
 
     assert result.status == "invalid"
@@ -799,7 +799,7 @@ def test_gstr1_validate_no_duplicate_false_flag_for_unique_numbers(db_session):
         to_date=date(2026, 7, 31),
         db=db_session,
         _=user,
-        active_company=None,
+        active_company=_make_company(),
     )
 
     assert result.status == "valid"
@@ -836,7 +836,7 @@ def test_gstr1_validate_detects_missing_hsn(db_session):
         to_date=date(2026, 8, 31),
         db=db_session,
         _=user,
-        active_company=None,
+        active_company=_make_company(),
     )
 
     assert result.status == "invalid"
@@ -869,7 +869,7 @@ def test_gstr1_validate_detects_hsn_of_illegal_length(db_session):
         to_date=date(2026, 8, 31),
         db=db_session,
         _=user,
-        active_company=None,
+        active_company=_make_company(),
     )
 
     assert result.status == "invalid"
@@ -898,7 +898,7 @@ def test_gstr1_validate_detects_non_slab_gst_rate(db_session):
         to_date=date(2026, 8, 31),
         db=db_session,
         _=user,
-        active_company=None,
+        active_company=_make_company(),
     )
 
     assert result.status == "invalid"

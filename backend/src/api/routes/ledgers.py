@@ -2533,6 +2533,17 @@ def _zero_rate_sales(sales: list[Invoice]) -> tuple[int, float]:
     return count, round(value, 2)
 
 
+def _company_gstin_error(company_gstin: str | None) -> str | None:
+    """The company-level prerequisite shared by validation and JSON export."""
+    if not company_gstin or not company_gstin.strip():
+        return "Company GSTIN is required to generate GSTR-1 export. Please set your company GSTIN in Settings."
+    if not GSTIN_REGEX.fullmatch(company_gstin.strip().upper()):
+        return f"Company GSTIN '{company_gstin}' is invalid. Please set a valid 15-character GSTIN in Settings."
+    if _derive_place_of_supply(company_gstin) == "00":
+        return "Cannot determine Place of Supply from company GSTIN. Please set a valid company GSTIN in Settings."
+    return None
+
+
 def _validate_gstr1_export(
     db: Session,
     company_gstin: str | None,
@@ -2546,18 +2557,12 @@ def _validate_gstr1_export(
     """
     errors: list[str] = []
 
-    # 1. Company GSTIN must be set and valid
-    if not company_gstin or not company_gstin.strip():
-        errors.append("Company GSTIN is required to generate GSTR-1 export. Please set your company GSTIN in Settings.")
-    elif not GSTIN_REGEX.fullmatch(company_gstin.strip().upper()):
-        errors.append(f"Company GSTIN '{company_gstin}' is invalid. Please set a valid 15-character GSTIN in Settings.")
-
-    # 2. Company POS must not be "00"
+    company_error = _company_gstin_error(company_gstin)
+    if company_error:
+        errors.append(company_error)
     company_pos = _derive_place_of_supply(company_gstin)
-    if company_pos == "00":
-        errors.append("Cannot determine Place of Supply from company GSTIN. Please set a valid company GSTIN in Settings.")
 
-    # 3. Check each invoice
+    # Check each invoice
     seen_numbers: set[str] = set()
     for inv in invoices:
         if inv.voucher_type != "sales":
@@ -2681,6 +2686,11 @@ def gstr1_validate(
     company_pos = _derive_place_of_supply(company_gstin)
 
     # Not about any one document, so it has no number to show against it.
+    company_error = _company_gstin_error(company_gstin)
+    if company_error:
+        errors.append(Gstr1ValidationError(
+            invoice_number="", field="Company GSTIN", message=company_error, severity="error",
+        ))
     period_error = _gstr1_period_error(from_date, to_date)
     if period_error:
         errors.append(Gstr1ValidationError(invoice_number="", field="Period", message=period_error, severity="error"))
