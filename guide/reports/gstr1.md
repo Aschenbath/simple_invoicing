@@ -30,7 +30,7 @@ The table lists each issue with its invoice, field and severity. Click an invoic
 | **Not a return period** | Choose one whole month or quarter. |
 | **Invoice number** too long or with invalid characters | GSTR-1 allows at most 16 characters: letters, digits, `-` and `/`, starting with a letter or digit. |
 | **Duplicate invoice number** | Each number must be unique. |
-| **Invalid GSTIN format** | Correct the GSTIN on the customer's ledger. |
+| **Invalid GSTIN**, state code or check digit | Correct the GSTIN on the customer's ledger, then save the invoice again. |
 | **Missing HSN**, wrong length, or not on GST's list | Correct it on the product, then save the invoice again. |
 | **Not a GST slab** | The rate must be 0, 0.1, 0.25, 1, 1.5, 3, 5, 6, 7.5, 12, 18, 28 or 40. |
 | **Missing or zero taxable value** | Check the invoice's lines. |
@@ -38,6 +38,8 @@ The table lists each issue with its invoice, field and severity. Click an invoic
 | **The buyer's GSTIN is your own** | A sale to yourself is not a B2B supply. |
 
 Credit notes get the same checks. The fix is different because they cannot be edited: cancel the note, correct the invoice, then raise the note again with the same date. It gets a new number.
+
+Existing invoices keep the GSTIN saved when they were issued. GSTR-1 checks that saved value, including its state code and check digit, just as GSTR-3B does. An invalid saved GSTIN blocks JSON export until it is corrected; changing the ledger alone does not update old invoices. If a credit note prevents editing its source invoice, cancel the note before correcting the ledger and saving that invoice again.
 
 Common **warnings**:
 

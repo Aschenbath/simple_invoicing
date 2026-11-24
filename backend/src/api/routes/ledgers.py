@@ -37,6 +37,7 @@ from src.services.credit_note_reporting import get_credit_note_ledger_summary
 from src.services.credit_note_deadline import section34_warning
 from src.services.financial_year import get_active_fy
 from src.services.gst_returns.setoff import compute_setoff
+from src.services.gst_returns.classification import gstin_problem
 from src.services.invoice_payments import auto_allocate_outstanding_invoices, build_invoice_payment_summaries, get_outstanding_invoices_for_ledger
 # _build_statement_html is re-exported for src.api.routes.email, which imports it
 # from here; the statement PDF itself is now rendered by src.services.share_documents.
@@ -2190,6 +2191,16 @@ def _note_line_fix(cn_num: str, item: CreditNoteItem, invoices_by_id: dict[int, 
     )
 
 
+def _buyer_gstin_filing_error(gstin: str | None) -> str | None:
+    problem = gstin_problem(gstin)
+    if problem is None:
+        return None
+    return (
+        f"Invalid GSTIN '{gstin.strip().upper()}': {problem}. "
+        "Correct the customer's GSTIN on the ledger, then save this invoice again"
+    )
+
+
 def _note_filing_errors(cn: CreditNote, invoices_by_id: dict[int, Invoice], company_pos: str) -> list[tuple[str, str]]:
     """What stops an outward credit note being filed, as (field, message)."""
     errors: list[tuple[str, str]] = []
@@ -2218,8 +2229,15 @@ def _note_filing_errors(cn: CreditNote, invoices_by_id: dict[int, Invoice], comp
     originals = {item.invoice_id: invoices_by_id.get(item.invoice_id) for item in cn.items if item.invoice_id}
     for original in originals.values():
         ctin = ((original.ledger_gst if original else None) or "").strip().upper()
-        if ctin and not GSTIN_REGEX.fullmatch(ctin):
-            errors.append(("GSTIN", f"Invoice {original.invoice_number} has an invalid buyer GSTIN: {ctin}"))
+        problem = gstin_problem(ctin)
+        if problem:
+            errors.append((
+                "GSTIN",
+                f"Invoice {original.invoice_number} has an invalid buyer GSTIN '{ctin}': {problem}. "
+                f"Cancel credit note {cn_num}, correct the customer's GSTIN on the ledger, "
+                "save the original invoice again, then raise the note again with the same date "
+                "(it takes a new number)",
+            ))
 
     without_state = [inv for inv in originals.values() if inv and needs_place_of_supply(inv)]
     if without_state:
@@ -2579,14 +2597,10 @@ def _validate_gstr1_export(
         if _is_zero_value_invoice(inv):
             continue
 
-        # B2B: customer GSTIN must be valid and POS must be valid
-        if ctin:
-            if not GSTIN_REGEX.fullmatch(ctin):
-                errors.append(f"Invoice {inv_num}: Customer GSTIN '{ctin}' is not a valid 15-character GSTIN.")
-            else:
-                pos = ctin[:2]
-                if pos == "00" or not pos.isdigit():
-                    errors.append(f"Invoice {inv_num}: Cannot derive valid Place of Supply from customer GSTIN '{ctin}'.")
+        # Match the state-code and check-digit checks used by GSTR-3B.
+        gstin_error = _buyer_gstin_filing_error(ctin)
+        if gstin_error:
+            errors.append(f"Invoice {inv_num}: {gstin_error}.")
 
         # Check for HSN codes. A malformed code is as fatal as a missing one —
         # the portal drops the whole HSN summary over a single bad row.
@@ -2709,17 +2723,18 @@ def gstr1_validate(
 
         # GSTIN validation. A missing buyer GSTIN is a legitimate B2C supply
         # (filed under B2CS/B2CL), so it is a warning — not a blocking error.
-        # A present-but-malformed GSTIN is a real error that must be fixed.
+        # A present-but-invalid GSTIN is a real error that must be fixed.
         ledger_gst = (inv.ledger_gst or "").strip().upper()
+        gstin_error = _buyer_gstin_filing_error(ledger_gst)
         if not ledger_gst:
             errors.append(Gstr1ValidationError(
                 invoice_number=inv_num, field="GSTIN",
                 message="No GSTIN — will be filed as B2C (B2CS/B2CL)", severity="warning",
             ))
-        elif not GSTIN_REGEX.fullmatch(ledger_gst):
+        elif gstin_error:
             errors.append(Gstr1ValidationError(
                 invoice_number=inv_num, field="GSTIN",
-                message=f"Invalid GSTIN format: {ledger_gst}", severity="error",
+                message=gstin_error, severity="error",
             ))
 
         # HSN checks
