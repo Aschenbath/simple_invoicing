@@ -9253,6 +9253,14 @@ a.ledger-chip:focus-visible {
   }
 }
 
+@media (max-width: 767px) {
+  /* Moving a floating link above the total bar still covers fields as they
+     scroll past it. Leave mobile forms and dialogs unobstructed instead. */
+  body:has(.page-frame form, .composer-submit, [aria-modal="true"]) .whatsapp-bubble {
+    display: none;
+  }
+}
+
 /* Paper size picker */
 .paper-picker { cursor: default; }
 
@@ -9309,6 +9317,4 @@ a.ledger-chip:focus-visible {
   .composer-submit__total { display: block; font-weight: 700; }
   .composer-submit .button { min-height: 48px; }
 
-  /* Above the bar on this page only. */
-  body:has(.composer-submit) .whatsapp-bubble { bottom: calc(88px + env(safe-area-inset-bottom)); }
 }
