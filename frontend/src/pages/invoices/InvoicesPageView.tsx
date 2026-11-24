@@ -1558,7 +1558,11 @@ export default function InvoicesPage() {
                 ) : null}
                 {composerQuery.data && (ledgers.length === 0 || products.length === 0) ? (
                   <div className="empty-state stack composer-first-run" data-testid="invoice-first-run">
-                    <strong>Add your first customer / product</strong>
+                    <strong>
+                      {ledgers.length === 0
+                        ? products.length === 0 ? 'Add your first customer and product' : 'Add your first customer'
+                        : 'Add your first product'}
+                    </strong>
                     <p className="muted-text" style={{ margin: 0 }}>
                       An invoice needs a customer ledger and at least one product. Add what is missing to get started.
                     </p>
