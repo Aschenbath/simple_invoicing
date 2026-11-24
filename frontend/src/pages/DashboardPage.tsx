@@ -277,7 +277,7 @@ export default function DashboardPage() {
             {!loading && !loadFailed && lowStock.length === 0 ? (
               <EmptyState
                 message="No inventory rows yet. Add products to track their stock."
-                action={<Link to="/products" className="button button--secondary button--small">Go to Products</Link>}
+                action={<Link to="/products" className="button button--secondary button--small">Go to Products &amp; Stock</Link>}
               />
             ) : null}
             {!loading

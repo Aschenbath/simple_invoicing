@@ -2236,7 +2236,7 @@ export default function InvoicesPage() {
                 <p style={{ margin: 0 }}>
                   Only {stockShortage.available} of {stockShortage.productName} in stock, and this invoice needs {stockShortage.required}.
                   Add the missing stock and your invoice stays as you filled it in.
-                  If you don&apos;t keep count of stock for this item, edit it in Products and turn off stock counting instead.
+                  If you don&apos;t keep count of stock for this item, edit it in Products &amp; Stock and turn off stock counting instead.
                 </p>
                 <button
                   type="button"

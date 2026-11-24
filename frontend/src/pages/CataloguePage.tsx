@@ -375,7 +375,7 @@ export default function CataloguePage() {
       <section className="page-hero">
         <div>
           <p className="eyebrow">Catalogue</p>
-          <h1 className="page-title">Products &amp; stock</h1>
+          <h1 className="page-title">Products &amp; Stock</h1>
           <p className="section-copy">
             Every product you sell, with what is on the shelf. Prices edit in the row; stock moves
             through an audited adjustment.

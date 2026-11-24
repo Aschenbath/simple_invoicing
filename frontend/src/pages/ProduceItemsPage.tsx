@@ -158,7 +158,7 @@ export default function ProduceItemsPage() {
             <EmptyState message="Loading producable products…" />
           ) : products.length === 0 ? (
             <EmptyState
-              message="No producable products found. Mark a product as Producable on the Products page, then configure its Bill of Materials."
+              message="No producable products found. Mark a product as Producable on the Products & Stock page, then configure its Bill of Materials."
             />
           ) : (
             <>
@@ -193,7 +193,7 @@ export default function ProduceItemsPage() {
                       <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Loading BOM…</p>
                     ) : bom.length === 0 ? (
                       <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-                        No BOM configured for this product. Add components via Products → Configure BOM.
+                        No BOM configured for this product. Add components via Products &amp; Stock → Configure BOM.
                       </p>
                     ) : (
                       <div className="table-list">
