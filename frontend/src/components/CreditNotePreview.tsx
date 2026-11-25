@@ -7,6 +7,7 @@ import PreviewToolbar from './PreviewToolbar';
 import PaperSizePicker from './PaperSizePicker';
 import { usePaperChoice } from '../hooks/usePaperChoice';
 import { noteDocumentFileName, type NoteDocumentLabel } from '../utils/noteDocument';
+import { printPdf } from '../utils/printPdf';
 
 type CreditNotePreviewProps = {
   creditNoteId: number;
@@ -121,8 +122,7 @@ export default function CreditNotePreview({
   };
 
   const handlePrintPdf = () => {
-    iframeRef.current?.contentWindow?.focus();
-    iframeRef.current?.contentWindow?.print();
+    printPdf(iframeRef.current, pdfUrl);
   };
 
   const handleOpenInNewTab = () => {
