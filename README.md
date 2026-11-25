@@ -8,7 +8,7 @@ Both captures open quotation QT-DEMO-001 with two cotton-fabric lines of 0.1 and
 | --- | --- |
 | ![Before: false quantity reduction warning](before.png) | ![After: regrouped quantity has no warning](after.png) |
 
-The before capture serves the already-built application with only `conversionLineShortfalls` replaced in memory by that function compiled from baseline commit `720300a7b3c11fab575ccf585582f054448a6363`. It displays the false warning "0.3 of 0.30000000000000004". The after capture serves the untouched tested build and has no reduction warning.
+The before capture serves the already-built application with only `conversionLineShortfalls` replaced in memory by that function compiled from baseline commit `4e975c96ca2c0c3aecdc7388105e41d493f725ab`. It displays the false warning "0.3 of 0.30000000000000004". The after capture serves the untouched tested build and has no reduction warning.
 
 Both runs use the same explicit fixture API responses and user actions. Browser execution reported no page errors or unmocked API endpoints. Source and build files were read only; hashes were checked after capture. This evidence branch contains only the two images and this provenance document; it does not change the code PR branch.
 
@@ -20,3 +20,5 @@ Tested source hashes:
 - `frontend/src/utils/quotationDraft.test.ts`: `c6d171ffb5357a8a6ce3e56fe96fd927b1a4a563466f019cb39b2550b5cb9e3e`
 
 Prepared and validated with assistance from OpenAI Codex.
+
+These captures were refreshed after rebasing the code change onto the main commit above and rerunning the full frontend suite (140 files, 1,406 tests) and production build. Capture time: `2026-11-25T07:27:48.724Z`.
